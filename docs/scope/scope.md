@@ -29,7 +29,7 @@ Language: English plus Indonesian on guest and staff screens.
 | 1   | Stack and architecture                 | Foundation | in-progress |
 | 2   | Data model                             | Foundation | in-progress |
 | 3   | Design system and UI foundation        | Foundation | in-progress |
-| 4   | Auth and roles                         | Foundation | planned     |
+| 4   | Auth and roles                         | Foundation | in-progress |
 | 5   | Real time foundation and rate limiting | Foundation | planned     |
 | 6   | Stay and guest check in                | Slice 1    | planned     |
 | 7   | Guest order with PIN verify            | Slice 1    | planned     |
@@ -86,12 +86,22 @@ Visual language from the Biz Hotel Batam red and white reference, layout primiti
 - [x] Review it (fresh model): `/check review design system & UI foundation`
 - [x] Document it: `/document design system & UI foundation`
 
-### 4. Auth and roles · needs a decision
+### 4. Auth and roles · in-progress
 
 Staff access by role (front desk, kitchen, admin) plus guest identity tied to stay and secret PIN.
 **Done when:** each role can reach only its own screens, and guest identity resolves to one stay.
 
-- [ ] Design it (spec): `/architect auth and roles`
+- [x] Design it (spec): `/architect auth and roles`
+      Spec [0004](../specs/0004-auth-and-roles/index.md) · Code in `prisma/schema.prisma`, `lib/auth.ts`, `app/sign-in/`, `proxy.ts`, `app/api/stay-session/`, `app/api/staff/`
+- [ ] Build it: `/develop auth and roles`
+  - [ ] Migration plus BetterAuth wiring with additive User columns and StaySession (AC-1, AC-2, AC-3, AC-5)
+  - [ ] Staff sign in plus temp change plus edge gates per role (AC-1, AC-2, AC-4, AC-8)
+  - [ ] Stay mint plus revoke plus LRU limits and lockout (AC-3, AC-4, AC-5, AC-6, AC-7)
+  - [ ] Admin create plus seed plus unlock plus prove walk (AC-2, AC-8, AC-1 to AC-8)
+- [ ] Verify it: `/check verify auth and roles`
+- [ ] Test it: `/test auth and roles`
+- [ ] Review it (fresh model): `/check review auth and roles`
+- [ ] Document it: `/document auth and roles`
 
 ### 5. Real time foundation and rate limiting · needs a decision
 
