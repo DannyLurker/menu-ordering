@@ -1,0 +1,179 @@
+// Data model per spec 0002 (single coherent target, built thin first).
+// Money is whole rupiah (IDR, no cents). PIN hash uses scrypt, app side.
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+enum StayStatus {
+  ACTIVE
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  SERVED
+  GUEST_CANCELLED
+  KITCHEN_CANCELLED
+}
+
+enum FolioStatus {
+  OPEN
+  CLOSED
+}
+
+enum PaymentMethod {
+  ROOM_CHARGE
+  EWALLET_RECORD
+}
+
+enum PaymentStatus {
+  RECORDED
+  VOID
+}
+
+model Stay {
+  id                String     @id @default(uuid())
+  roomNumber        String
+  guestName         String
+  checkIn           DateTime   @db.Date
+  checkOut          DateTime   @db.Date
+  status            StayStatus @default(ACTIVE)
+  pinHash           String
+  failedPinAttempts Int        @default(0)
+  pinLocked         Boolean    @default(false)
+  pinSetAt          DateTime?
+  createdAt         DateTime   @default(now())
+  orders            Order[]
+  guests            Guest[]
+  folio             Folio?
+
+  // One ACTIVE stay per room is enforced by a partial unique index
+  // added in the migration SQL (WHERE status = 'ACTIVE').
+  // checkOut after checkIn plus failedPinAttempts >= 0 are CHECK constraints
+  // in migration 20261010163000_data_model_checks (spec 0002 invariants).
+}
+
+model Guest {
+  id        String   @id @default(uuid())
+  fullName  String
+  stayId    String
+  stay      Stay     @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([stayId])
+}
+
+model MenuCategory {
+  id        String     @id @default(uuid())
+  nameEn    String
+  nameId    String
+  sortOrder Int        @default(0)
+  isActive  Boolean    @default(true)
+  items     MenuItem[]
+}
+
+model MenuItem {
+  // price nonnegative in whole rupiah enforced by a CHECK constraint
+  // in migration 20261010163000_data_model_checks (spec 0002 AC-3).
+  id          String       @id @default(uuid())
+  categoryId  String
+  category    MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  nameEn      String
+  nameId      String
+  price       Int
+  isAvailable Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  orderItems  OrderItem[]
+
+  @@index([categoryId])
+}
+
+model Order {
+  // etaMinutes null until verify, then 5 to 120, enforced by a CHECK
+  // constraint in migration 20261010163000_data_model_checks (AC-7).
+  id         String      @id @default(uuid())
+  stayId     String
+  stay       Stay        @relation(fields: [stayId], references: [id], onDelete: Restrict)
+  status     OrderStatus @default(PENDING)
+  etaMinutes Int?
+  placedAt   DateTime    @default(now())
+  verifiedAt DateTime?
+  servedAt   DateTime?
+  items      OrderItem[]
+  folioLines FolioLine[]
+  payments   Payment[]
+
+  @@index([stayId])
+  @@index([status])
+}
+
+model OrderItem {
+  // qty 1 to 20 plus unitPrice >= 0 plus one line per menu item per order
+  // enforced in migration 20261010163000_data_model_checks (AC-3).
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId  String
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+  qty         Int
+  unitPrice   Int
+  folioLines  FolioLine[]
+
+  @@index([orderId])
+}
+
+model Folio {
+  id        String      @id @default(uuid())
+  stayId    String      @unique
+  stay      Stay        @relation(fields: [stayId], references: [id], onDelete: Restrict)
+  status    FolioStatus @default(OPEN)
+  createdAt DateTime    @default(now())
+  closedAt  DateTime?
+  lines     FolioLine[]
+  payments  Payment[]
+}
+
+model FolioLine {
+  // amount >= 0 enforced by a CHECK constraint in migration
+  // 20261010163000_data_model_checks (AC-4, AC-9).
+  id          String     @id @default(uuid())
+  folioId     String
+  folio       Folio      @relation(fields: [folioId], references: [id], onDelete: Restrict)
+  orderId     String     @unique
+  order       Order      @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderItemId String?
+  orderItem   OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  labelEn     String
+  labelId     String
+  amount      Int
+  voided      Boolean    @default(false)
+
+  @@index([folioId])
+}
+
+model Payment {
+  // amount >= 0 plus one RECORDED payment per order enforced in migration
+  // 20261010163000_data_model_checks; VOID rows keep history and allow a
+  // later re-record (spec 0002 AC-8).
+  id         String        @id @default(uuid())
+  orderId    String
+  order      Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  folioId    String
+  folio      Folio         @relation(fields: [folioId], references: [id], onDelete: Restrict)
+  method     PaymentMethod
+  status     PaymentStatus @default(RECORDED)
+  amount     Int
+  recordedAt DateTime      @default(now())
+
+  @@index([folioId])
+  @@index([orderId])
+}

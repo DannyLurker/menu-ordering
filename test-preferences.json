@@ -1,0 +1,1 @@
+{"additionalTools": [], "e2eTool": "none", "filePattern": "*.test.ts", "gate": null, "packageManager": "pnpm", "testDir": "beside the source", "tool": "vitest"}
