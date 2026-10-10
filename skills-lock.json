@@ -19,6 +19,36 @@
       "skillPath": "better-auth/best-practices/SKILL.md",
       "computedHash": "f35281e7a0c07b3fd3c4e96c7833dafb294a3a8662cb68a8544f4225008d6568"
     },
+    "better-auth-email-password-and-sessions": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "better-auth/better-auth-email-password-and-sessions/SKILL.md",
+      "computedHash": "4f0c414e0785a9ea2e6b73debb50bf76c8f6ca4074774f1a0858769931a4c1d8"
+    },
+    "better-auth-nextjs-integration-and-route-protection": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "better-auth/better-auth-nextjs-integration-and-route-protection/SKILL.md",
+      "computedHash": "b4fbcbc3697f7df434a6c2e47374860ea392bd9cdfc006a9e0dcc18a39f58c13"
+    },
+    "better-auth-overview-and-setup": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "better-auth/better-auth-overview-and-setup/SKILL.md",
+      "computedHash": "35ccaddd2159a91c3bfa0dd7629ce198ed19884470f5bb5d448e1794e180cd2b"
+    },
+    "better-auth-plugins-organizations-and-sso": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "better-auth/better-auth-plugins-organizations-and-sso/SKILL.md",
+      "computedHash": "3f404536aa24e012c71975acef8af0e639c4732c148dcae515692999a00371e3"
+    },
+    "better-auth-social-providers-and-oauth": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "better-auth/better-auth-social-providers-and-oauth/SKILL.md",
+      "computedHash": "a8102305c4d8590870f415e83ce61715fb44d910ac3ede80c34d5f7189968837"
+    },
     "check": {
       "source": "jsmastery-pro/skills",
       "sourceType": "github",
@@ -43,11 +73,215 @@
       "skillPath": "skills/document/SKILL.md",
       "computedHash": "a47c5d29a1263d987c2fa05dbc993a5276aaf6c4ddc54fbd329463a5f3a1aa77"
     },
+    "documentation-diataxis-and-technical-writing": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "documentation/documentation-diataxis-and-technical-writing/SKILL.md",
+      "computedHash": "aa4fc98bf160af2e899ef1c0eb4fc5c1e35f9cffe2ebb169316d4f31a65f3e8f"
+    },
+    "drizzle-orm-drivers-and-runtimes": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "drizzle-orm/drizzle-orm-drivers-and-runtimes/SKILL.md",
+      "computedHash": "f6ebaf1e501b322e59e828ad0ac6c8a5541fe21081fc591cae590b50812d0620"
+    },
+    "drizzle-orm-ecosystem-and-extensions": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "drizzle-orm/drizzle-orm-ecosystem-and-extensions/SKILL.md",
+      "computedHash": "45acc84973b486b6560dde0eb0164b170bc2eac687baa1302287ab1e051eaa6f"
+    },
+    "drizzle-orm-migrations-and-drizzle-kit": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "drizzle-orm/drizzle-orm-migrations-and-drizzle-kit/SKILL.md",
+      "computedHash": "4599a188d6c0762eda3bc7498d084ba8d040de27a3995aab64e6e0c48ed44f0c"
+    },
+    "drizzle-orm-overview-and-setup": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "drizzle-orm/drizzle-orm-overview-and-setup/SKILL.md",
+      "computedHash": "4bdeea5d049830724f29f46e83e20f2ded67a8afb5bbd79ec6e3bb3c2dd0c166"
+    },
+    "drizzle-orm-queries-and-sql": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "drizzle-orm/drizzle-orm-queries-and-sql/SKILL.md",
+      "computedHash": "d312cf442c9434cf58d3bd4b9522c419afc904df2e112fda50115b27b1f0c74e"
+    },
+    "drizzle-orm-schema-and-relations": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "drizzle-orm/drizzle-orm-schema-and-relations/SKILL.md",
+      "computedHash": "0f3c217448c471e6a852d11a8b25abddec293e576f5ec5ce74f680ddb371198c"
+    },
+    "fastify-auth-and-oauth": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "fastify/fastify-auth-and-oauth/SKILL.md",
+      "computedHash": "43893495c10f6e9434cd29734a8a67bf4160da904a97fe432a760129428a3a33"
+    },
+    "fastify-best-practices": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "fastify/fastify-best-practices/SKILL.md",
+      "computedHash": "a1d8bb4deb82b9f722f2a6b9c6d35e07aa637f44345031c79de8e4f462cc96e2"
+    },
+    "github-triage": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "engineering/github-triage/SKILL.md",
+      "computedHash": "36241222c6453bc99bab48b79202b290ab1689b16f397d3102caeff6a2d9866a"
+    },
+    "improve-codebase-architecture": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "engineering/improve-codebase-architecture/SKILL.md",
+      "computedHash": "5856c3370364ce4c331238c4a21d2acfd850ca81d4c9c14aa07dadc0aec58589"
+    },
+    "lucide-react-dynamic-icons-and-lucide-lab": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "lucide-react/lucide-react-dynamic-icons-and-lucide-lab/SKILL.md",
+      "computedHash": "d7137ef64a41a6b814c51a541b8106ec463239b13b8ae2ef1d4b5966844f31bd"
+    },
+    "lucide-react-overview-and-setup": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "lucide-react/lucide-react-overview-and-setup/SKILL.md",
+      "computedHash": "1c1d50a24a14050d350442f06f4dd937cd9b4d6a7ac612dd9c6044ea69687365"
+    },
+    "lucide-react-styling-and-accessibility": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "lucide-react/lucide-react-styling-and-accessibility/SKILL.md",
+      "computedHash": "95cdcc52bdaa070e60b87dee59bc0941cf381fe905a5eca1ea6080a76062f488"
+    },
+    "migrate-radix-to-base": {
+      "source": "shadcn-ui/ui",
+      "sourceType": "github",
+      "skillPath": "skills/migrate-radix-to-base/SKILL.md",
+      "computedHash": "4fdc31bf287f674ba6bf91a648120f7b34cd7ef370f998f2cc116fed067789c5"
+    },
+    "next-intl-messages-and-formatting": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "next-intl/next-intl-messages-and-formatting/SKILL.md",
+      "computedHash": "fae0540b4027a556ff31092d527276d1e6d954d35a21e9cbf38680f3c5b4ea78"
+    },
+    "next-intl-routing-and-navigation": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "next-intl/next-intl-routing-and-navigation/SKILL.md",
+      "computedHash": "e9c3abf5877f1b2ae54eabbc1f05596d951546b36e710252d91b5436e113b7f2"
+    },
+    "next-intl-server-runtime": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "next-intl/next-intl-server-runtime/SKILL.md",
+      "computedHash": "d7822fc2a293338523a774961fb99e40f02bd558377c1eb82341ed9bd811a8b3"
+    },
+    "next-intl-workflows-and-tooling": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "next-intl/next-intl-workflows-and-tooling/SKILL.md",
+      "computedHash": "11a80b83a52e64c6b4bbad3e258c1193972ebae4e23ef8f87a2774e89045ab0c"
+    },
     "nextjs-app-router-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
       "skillPath": "plugins/frontend-mobile-development/skills/nextjs-app-router-patterns/SKILL.md",
       "computedHash": "3a46e9093baecb3a85819529ce05006f817663f48d9e872868c32ae6049c0d5c"
+    },
+    "nextjs-data-fetching-and-cache": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "nextjs/nextjs-data-fetching-and-cache/SKILL.md",
+      "computedHash": "cf64599564e9b27fdb2d68500f9f18e0f175f5c27bea8f20da303f40b97bc078"
+    },
+    "nextjs-metadata-seo-and-file-conventions": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "nextjs/nextjs-metadata-seo-and-file-conventions/SKILL.md",
+      "computedHash": "4fecd4c287a6a451861bbe1fc9ca8babc6be0a0981bbde91b748239110570d34"
+    },
+    "nextjs-overview-and-app-router": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "nextjs/nextjs-overview-and-app-router/SKILL.md",
+      "computedHash": "9a833708575616eebf9dceff2415e64fd31bf9eef27ddbf35a4d5571e06c01b4"
+    },
+    "nextjs-performance-and-render-cost": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "nextjs/nextjs-performance-and-render-cost/SKILL.md",
+      "computedHash": "0eb978880e7441419cf6913ab5348ca0d79868ce0427436832e52165e9a81033"
+    },
+    "nextjs-rendering-runtime-and-middleware": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "nextjs/nextjs-rendering-runtime-and-middleware/SKILL.md",
+      "computedHash": "12e7396b58abee703a4d969f9f74d90958dcbfa424a934d5a264fb284f3fdf32"
+    },
+    "nextjs-server-actions-and-route-handlers": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "nextjs/nextjs-server-actions-and-route-handlers/SKILL.md",
+      "computedHash": "2bca54fb983fcbaafbaa573c1ed2d39675a63adb1e713c5edb460ff95bc511e7"
+    },
+    "nodejs-api-latency-and-throughput": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "nodejs/nodejs-api-latency-and-throughput/SKILL.md",
+      "computedHash": "08bf23c9380750b7d39521340932eb4f1791677c317b0eca2a9fc2e4c8e0bbb2"
+    },
+    "nodejs-best-practices": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "nodejs/nodejs-best-practices/SKILL.md",
+      "computedHash": "3ba3d13218a0b3a3fd4622ce249653a90c41ea5d2fa6a9007e348b74cdc97162"
+    },
+    "performance-regression-verification": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "performance/performance-regression-verification/SKILL.md",
+      "computedHash": "644f05ab7a0e6878b3683c61faf5bb8d973dd3862f5433cc0dd92622574d5829"
+    },
+    "performance-triage-and-bottleneck-hunting": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "performance/performance-triage-and-bottleneck-hunting/SKILL.md",
+      "computedHash": "581f983a6df18adbd1cf2ce7f71bc9cdb0c1f4b579415cf86db55a943324235c"
+    },
+    "playwright-auth-projects-and-isolation": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "playwright/playwright-auth-projects-and-isolation/SKILL.md",
+      "computedHash": "904e464297654a1fd288f1d373d10d14e267ccacaa27a2d6b01be75607c15da3"
+    },
+    "playwright-debugging-traces-and-flake-reduction": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "playwright/playwright-debugging-traces-and-flake-reduction/SKILL.md",
+      "computedHash": "5d1e388f4752156dec1e7a16f16d7e05308639fafd7f4597a01db4b7a4a44457"
+    },
+    "playwright-default-test-architecture": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "playwright/playwright-default-test-architecture/SKILL.md",
+      "computedHash": "058cd02108004aacfb0244c0f3f1f8b83e56aaf48e5ac4b7584d32701ebcc5bf"
+    },
+    "playwright-locators-assertions-and-user-visible-contracts": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "playwright/playwright-locators-assertions-and-user-visible-contracts/SKILL.md",
+      "computedHash": "6a6b70424d4b63eacd3a8c122dbec6c4b85ff05d91565ee6f1b1e18ed32e814e"
+    },
+    "playwright-network-control-and-api-synchronization": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "playwright/playwright-network-control-and-api-synchronization/SKILL.md",
+      "computedHash": "d1e4feeeeeb01e585f81e78c45208789f512443a898b21c9c4bfff8925aa23db"
     },
     "prisma-client-api": {
       "source": "prisma/skills",
@@ -67,11 +301,131 @@
       "skillPath": "prisma-orm-setup/SKILL.md",
       "computedHash": "af5046146c37652728b428b6a3b14d8f33cded97007644840cf9bf20a5194b5a"
     },
+    "profiling-before-optimizing": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "performance/profiling-before-optimizing/SKILL.md",
+      "computedHash": "0c8cd2173b4fd3f92888ba8698db3d91a7589f78b0479bee5413a4db30a71e8b"
+    },
+    "react-render-performance-and-state-boundaries": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "react/react-render-performance-and-state-boundaries/SKILL.md",
+      "computedHash": "85f30c8367b179bfdbfa11654805337e39b9b233ee2a37b0e1f035f63c69f564"
+    },
+    "request-refactor-plan": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "engineering/request-refactor-plan/SKILL.md",
+      "computedHash": "f5ffe5404fbce9de488610f2c86e842cd323ffbb2c3274ecddb324aea3cbea43"
+    },
     "scope": {
       "source": "jsmastery-pro/skills",
       "sourceType": "github",
       "skillPath": "skills/scope/SKILL.md",
       "computedHash": "737c19451b3d0e08edf9560b195a864d1a4006e4f70760339ddc3b2d9b6b6447"
+    },
+    "security-authz-and-trust-boundaries": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "security/security-authz-and-trust-boundaries/SKILL.md",
+      "computedHash": "7b3872b0aafd7d4de8bd2238e38ce2b731698e5c10e3455974b378ed42d57832"
+    },
+    "security-client-server-boundary-and-secret-exposure": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "security/security-client-server-boundary-and-secret-exposure/SKILL.md",
+      "computedHash": "a11d531ccbc5aa32976baa2ec1782dfb6d744bd89b30a44245be9060415d86a6"
+    },
+    "security-default-review-for-web-apps": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "security/security-default-review-for-web-apps/SKILL.md",
+      "computedHash": "ee7108c3eb1ee842af1f8fc387f42eda04855db3651d8cdfcb484a51322dd66f"
+    },
+    "security-input-validation-and-dangerous-sinks": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "security/security-input-validation-and-dangerous-sinks/SKILL.md",
+      "computedHash": "ba6466b84362312375a58807045132b3c7088dbf3d896fd85fdecabf6d025449"
+    },
+    "setup-conventional-commits": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "engineering/setup-conventional-commits/SKILL.md",
+      "computedHash": "5453d9c19a09ed526181bb288c6d3024e50d164c95fcda9a2e47ff486e2f32d3"
+    },
+    "setup-pre-commit": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "engineering/setup-pre-commit/SKILL.md",
+      "computedHash": "ecc29eabed9dcca6e695e4e7c8f3aa09a6267c5d74379981ec485c008bd8a201"
+    },
+    "shadcn": {
+      "source": "shadcn-ui/ui",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "2d7bf36e581289fdcc3ffc592c1ec1d7457572baa72ba0d440229ef34bd7f6dd"
+    },
+    "shadcn-cli-registry-and-components-json": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "shadcn/shadcn-cli-registry-and-components-json/SKILL.md",
+      "computedHash": "78d42814b1e4180dd0dbde9e384b5f63aa8a822b1014806d00feb676a8475947"
+    },
+    "shadcn-composition-and-trigger-patterns": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "shadcn/shadcn-composition-and-trigger-patterns/SKILL.md",
+      "computedHash": "77de78f3a6847b74fc3a1fdcb8f259038c2ba1d9a7a6a85bb49a57eef17b5a60"
+    },
+    "shadcn-forms-and-field-primitives": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "shadcn/shadcn-forms-and-field-primitives/SKILL.md",
+      "computedHash": "a29dcd7a6e7097faf01ad59341a37c04405b0d38ef0d532765f46bf4436bb0c3"
+    },
+    "shadcn-overview-and-code-ownership": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "shadcn/shadcn-overview-and-code-ownership/SKILL.md",
+      "computedHash": "b08df9b8effec044158e248dad8669a2d847fe5d6548f862864169760353d450"
+    },
+    "shadcn-theming-tokens-and-dark-mode": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "shadcn/shadcn-theming-tokens-and-dark-mode/SKILL.md",
+      "computedHash": "6539270623808837e2b907bbe5d329defa9919a3cd0bca2a2eec69c047d86934"
+    },
+    "stripe-checkout-and-pricing-model-defaults": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "stripe/stripe-checkout-and-pricing-model-defaults/SKILL.md",
+      "computedHash": "93e394f974cd4233a567b656f8e3f66ac166e3b1d35412e009600a60f6e41681"
+    },
+    "stripe-customer-portal-defaults": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "stripe/stripe-customer-portal-defaults/SKILL.md",
+      "computedHash": "fd05eae2a26cf5d20a202b1c8ff3274382b371354f9c439ff9864b95bd9660fc"
+    },
+    "stripe-integration-defaults-and-routing": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "stripe/stripe-integration-defaults-and-routing/SKILL.md",
+      "computedHash": "0f5e793c7e9d43db06a6dd2b4018ab873cae6804e99c2e5bf911595cec043ad6"
+    },
+    "stripe-subscriptions-lifecycle-and-entitlements": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "stripe/stripe-subscriptions-lifecycle-and-entitlements/SKILL.md",
+      "computedHash": "3d95b2e5782eeb1da4c9de90c26b4b9cd624b156a96b94cd02da539b463b2c0c"
+    },
+    "stripe-webhook-first-billing-state": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "stripe/stripe-webhook-first-billing-state/SKILL.md",
+      "computedHash": "38420b58264f0a5cd6ebc4b30f040be829ce8e6169981de368341d6e45c0bcbd"
     },
     "sync": {
       "source": "jsmastery-pro/skills",
@@ -85,17 +439,53 @@
       "skillPath": "plugins/frontend-mobile-development/skills/tailwind-design-system/SKILL.md",
       "computedHash": "9e60f9fad6a645b173f076102b76f67d2dc4a1c0867e26c4bff9b9c7dd7f99cd"
     },
+    "tdd": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "engineering/tdd/SKILL.md",
+      "computedHash": "b11c7648b528214dd07153c3bc87149665f38982eb09558616cf9b57c415e111"
+    },
     "test": {
       "source": "jsmastery-pro/skills",
       "sourceType": "github",
       "skillPath": "skills/test/SKILL.md",
       "computedHash": "6b742c465b3e9cec898bf3621ec555faefb41fdcc0cbbf43ec0a6041fbdcb6be"
     },
+    "triage-issue": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "engineering/triage-issue/SKILL.md",
+      "computedHash": "fc34ee32b194fa3dc8066fe1fe5a9526fd860ab50a4c40904952bc07abe98bba"
+    },
+    "typescript-advanced-types-and-error-diagnosis": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "typescript/typescript-advanced-types-and-error-diagnosis/SKILL.md",
+      "computedHash": "49bdf22833d915af9afd8e584f6f561c5b815bd5face652c9b44796177124f35"
+    },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/react-best-practices/SKILL.md",
       "computedHash": "6b526d013e28073246a36f99b529bc43745d30832ecfa8217b359c34f260ca6b"
+    },
+    "write-a-skill": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skilling/write-a-skill/SKILL.md",
+      "computedHash": "79b9fa77f8d7b5fb35de6e74342a0fd1e210c58caee16d22d225439dda299646"
+    },
+    "write-decision-complete-feature-spec": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "engineering/write-decision-complete-feature-spec/SKILL.md",
+      "computedHash": "7283d30f0001dcd77c59caa0d0a40e327e52906ea783f45079f0eaaa0cff0eb1"
+    },
+    "write-intentional-commit-message": {
+      "source": "andrewsrigom/agent-skills",
+      "sourceType": "github",
+      "skillPath": "engineering/write-intentional-commit-message/SKILL.md",
+      "computedHash": "2d0374ebdc0666b2590da63b582aa80807a0e431c37bf76167a673136f26778a"
     }
   }
 }

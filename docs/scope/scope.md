@@ -28,7 +28,7 @@ Language: English plus Indonesian on guest and staff screens.
 | --- | -------------------------------------- | ---------- | ----------- |
 | 1   | Stack and architecture                 | Foundation | in-progress |
 | 2   | Data model                             | Foundation | in-progress |
-| 3   | Design system and UI foundation        | Foundation | planned     |
+| 3   | Design system and UI foundation        | Foundation | in-progress |
 | 4   | Auth and roles                         | Foundation | planned     |
 | 5   | Real time foundation and rate limiting | Foundation | planned     |
 | 6   | Stay and guest check in                | Slice 1    | planned     |
@@ -69,12 +69,22 @@ Core tables every slice builds on: guests, stays with dates, secret 6 digit PIN,
 - [x] Review it (fresh model): `/check review data model`
 - [x] Document it: `/document data model`
 
-### 3. Design system and UI foundation · needs a decision
+### 3. Design system and UI foundation · in-progress
 
 Visual language from the Biz Hotel Batam red and white reference, layout primitives, base components, modern and clean look for guest plus kitchen plus staff.
 **Done when:** design tokens cover type plus color plus spacing plus components, and base components handle focus and keyboard use.
 
-- [ ] Design it (spec): `/architect design system & UI foundation`
+- [x] Design it (spec): `/architect design system & UI foundation`
+      Spec [0003](../specs/0003-design-system-ui-foundation/index.md) · Code in `app/globals.css`, `components/ui/`, `lib/utils.ts`, `app/ui-preview/`
+- [x] Build it: `/develop design system & UI foundation`
+  - [x] Token layer with sampled brand red plus system type stack (AC-1, AC-4)
+  - [x] Thin thread with Button on the preview route (AC-1, AC-2)
+  - [x] Remaining parts plus layout primitives plus glance scale (AC-2, AC-3, AC-5, AC-6)
+  - [x] Icons plus contrast and keyboard audit (AC-3, AC-4, AC-7)
+- [x] Verify it: `/check verify design system & UI foundation`
+- [x] Test it: `/test design system & UI foundation`
+- [x] Review it (fresh model): `/check review design system & UI foundation`
+- [x] Document it: `/document design system & UI foundation`
 
 ### 4. Auth and roles · needs a decision
 
@@ -164,6 +174,7 @@ All guest and staff screens read well in English and Indonesian.
 Out of scope for the current build pass, kept so the plan stays honest.
 
 - **Xendit external payment**: real e wallet money movement in V1.2, replaces the V1.1 record only step · needs a decision
+- **Dark theme**: full dark token set if ever wanted, needs its own spec (from spec 0003) · needs a decision
 - **Checkout settlement**: settle folio balance at checkout with receipts · needs a decision
 - **Product analytics**: measure orders, prep times, and conversion · needs a decision
 
