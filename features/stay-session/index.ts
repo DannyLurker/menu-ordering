@@ -9,6 +9,7 @@ export {
   StayAuthError,
   checkoutExpiry,
   hashStayToken,
+  isStayOrderable,
   mintStaySession,
   peekStay,
   readStayToken,

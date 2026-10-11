@@ -59,8 +59,13 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   const isApi = pathname.startsWith("/api/");
 
-  // Public auth surfaces own their limits and gates.
-  if (pathname.startsWith("/api/auth/") || pathname.startsWith("/api/stay-session/")) {
+  // Public auth surfaces own their limits and gates. PIN setup is a guest
+  // surface: the setup code is the credential, throttled in its route.
+  if (
+    pathname.startsWith("/api/auth/") ||
+    pathname.startsWith("/api/stay-session/") ||
+    pathname === "/api/stays/pin-setup"
+  ) {
     return NextResponse.next();
   }
 

@@ -58,6 +58,15 @@ export function stayCoversToday(
   return utcDay(stay.checkIn) <= day && day <= utcDay(stay.checkOut);
 }
 
+/** A stay can order while ACTIVE and covering today (spec 0008). Single
+ * date truth for mint and ordering; status is checked first, then dates. */
+export function isStayOrderable(
+  stay: { status: string; checkIn: Date; checkOut: Date },
+  today = new Date(),
+): boolean {
+  return stay.status === "ACTIVE" && stayCoversToday(stay, today);
+}
+
 export interface StayMint {
   token: string;
   expiresAt: Date;
@@ -90,18 +99,18 @@ export async function mintStaySession(
   if (!stay || !/^\d{6}$/.test(pin)) {
     throw new StayAuthError(401, "WRONG_PIN", "Wrong PIN. Try again.");
   }
-  if (stay.status !== "ACTIVE" || !stayCoversToday(stay)) {
+  if (!isStayOrderable(stay)) {
     throw new StayAuthError(
       403,
       "STAY_NOT_ACTIVE",
-      "This stay cannot sign in. Please contact the front desk.",
+      "This stay cannot sign in. Please contact the front desk. / Data ini tidak aktif. Hubungi resepsionis.",
     );
   }
   if (stay.pinLocked) {
     throw new StayAuthError(
       403,
       "STAY_LOCKED",
-      "This stay is locked. Please contact the front desk.",
+      "This stay is locked. Please contact the front desk. / Data ini terkunci. Hubungi resepsionis.",
     );
   }
   const matched = await verifyPin(pin, stay.pinHash);

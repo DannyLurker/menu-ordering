@@ -6,6 +6,9 @@ import { describe, expect, it } from "vitest";
 import {
   ORDER_IP_MAX,
   ORDER_STAY_MAX,
+  PINSETUP_IP_MAX,
+  PINSETUP_STAY_MAX,
+  REISSUE_HOUR_MAX,
   clientIp,
   hitRateLimit,
   isRateLimited,
@@ -13,12 +16,16 @@ import {
   mintStayKey,
   orderIpKey,
   orderStayKey,
+  pinSetupIpKey,
+  pinSetupStayKey,
   rateLimitRetryAfter,
   rateLimitedResponse,
+  reissueDeskKey,
   resetRateLimit,
   signInAccountKey,
   signInIpKey,
   takeBudget,
+  takeHourBudget,
 } from "./rate-limit";
 
 describe("hitRateLimit", () => {
@@ -121,6 +128,41 @@ describe("retryAfter and takeBudget", () => {
     expect(body.error.code).toBe("RATE_LIMITED");
     expect(body.error.retryAfter).toBe(42);
     expect(body.error.message.length).toBeGreaterThan(0);
+  });
+});
+
+describe("check in budgets", () => {
+  it("namespaces PIN setup plus reissue budgets apart from mint, covers spec 0008 AC-7", () => {
+    expect(PINSETUP_STAY_MAX).toBe(5);
+    expect(PINSETUP_IP_MAX).toBe(20);
+    expect(REISSUE_HOUR_MAX).toBe(20);
+    expect(pinSetupStayKey("stay-1")).toBe("pinsetup:stay:stay-1");
+    expect(pinSetupIpKey("1.2.3.4")).toBe("pinsetup:ip:1.2.3.4");
+    expect(reissueDeskKey("stay-1")).toBe("reissue:stay:stay-1");
+    expect(new Set([pinSetupStayKey("x"), mintStayKey("x"), orderStayKey("x")]).size).toBe(3);
+  });
+
+  it("spends the setup stay budget in five then denies with retry, covers spec 0008 AC-7", () => {
+    const key = pinSetupStayKey(`t-pinsetup-${Date.now()}`);
+
+    for (let i = 0; i < PINSETUP_STAY_MAX; i += 1) {
+      expect(takeBudget(key, PINSETUP_STAY_MAX).allowed).toBe(true);
+    }
+    const denied = takeBudget(key, PINSETUP_STAY_MAX);
+    expect(denied.allowed).toBe(false);
+    expect(denied.retryAfterSec).toBeGreaterThan(0);
+  });
+
+  it("holds the hourly reissue budget apart from the minute buckets, covers spec 0008 AC-6", () => {
+    const key = reissueDeskKey(`t-reissue-${Date.now()}`);
+
+    for (let i = 0; i < REISSUE_HOUR_MAX; i += 1) {
+      expect(takeHourBudget(key, REISSUE_HOUR_MAX).allowed).toBe(true);
+    }
+    const denied = takeHourBudget(key, REISSUE_HOUR_MAX);
+    expect(denied.allowed).toBe(false);
+    expect(denied.retryAfterSec).toBeGreaterThan(0);
+    expect(denied.retryAfterSec).toBeLessThanOrEqual(60 * 60);
   });
 });
 

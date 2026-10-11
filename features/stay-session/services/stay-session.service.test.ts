@@ -9,6 +9,7 @@ import { prisma } from "../../../lib/db";
 import { hashPin } from "../../../lib/pin";
 import {
   StayAuthError,
+  isStayOrderable,
   mintStaySession,
   resolveStaySession,
   revokeStaySession,
@@ -97,5 +98,44 @@ describe("mintStaySession lazy upgrade", () => {
     await expect(mintStaySession(prisma, "00000000-0000-0000-0000-000000000000", "654321")).rejects.toBeInstanceOf(
       StayAuthError,
     );
+  });
+});
+
+describe("isStayOrderable shared date truth (spec 0008 AC-5)", () => {
+  const today = new Date("2026-10-11T03:00:00.000Z");
+
+  it("orders while ACTIVE inside the date range", () => {
+    expect(
+      isStayOrderable(
+        { status: "ACTIVE", checkIn: new Date("2026-10-11T00:00:00.000Z"), checkOut: new Date("2026-10-13T00:00:00.000Z") },
+        today,
+      ),
+    ).toBe(true);
+  });
+
+  it("refuses checkout day edges outside the range", () => {
+    expect(
+      isStayOrderable(
+        { status: "ACTIVE", checkIn: new Date("2026-10-12T00:00:00.000Z"), checkOut: new Date("2026-10-13T00:00:00.000Z") },
+        today,
+      ),
+    ).toBe(false);
+    expect(
+      isStayOrderable(
+        { status: "ACTIVE", checkIn: new Date("2026-10-09T00:00:00.000Z"), checkOut: new Date("2026-10-10T00:00:00.000Z") },
+        today,
+      ),
+    ).toBe(false);
+  });
+
+  it("refuses any non ACTIVE status even inside the range", () => {
+    for (const status of ["CHECKED_OUT", "CANCELLED"]) {
+      expect(
+        isStayOrderable(
+          { status, checkIn: new Date("2026-10-11T00:00:00.000Z"), checkOut: new Date("2026-10-13T00:00:00.000Z") },
+          today,
+        ),
+      ).toBe(false);
+    }
   });
 });

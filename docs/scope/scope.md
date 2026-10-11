@@ -84,25 +84,25 @@ Grandfather note: the staff and stay session slices already moved out of `lib/` 
 
 ## At a glance
 
-| #   | Feature                                | Phase      | Status  |
-| --- | -------------------------------------- | ---------- | ------- |
-| 1   | Stack and architecture                 | Foundation | done    |
-| 2   | Data model                             | Foundation | done    |
-| 3   | Design system and UI foundation        | Foundation | done    |
-| 4   | Auth and roles                         | Foundation | done    |
-| 5   | Real time foundation and rate limiting | Foundation | done    |
-| 6   | Stay and guest check in                | Slice 1    | planned |
-| 7   | Guest order with PIN verify            | Slice 1    | planned |
-| 8   | Kitchen live board with verify and ETA | Slice 1    | planned |
-| 9   | Folio and room charge                  | Slice 2    | planned |
-| 10  | Pay now record                         | Slice 2    | planned |
-| 11  | Guest live order status                | Slice 2    | planned |
-| 12  | Staff menu management                  | Slice 2    | planned |
-| 13  | Order history and stay folio view      | Slice 3    | planned |
-| 14  | Localization EN plus ID                | Slice 3    | planned |
-| 15  | Xendit external payment                | Deferred   | planned |
-| 16  | PIN hashing on bcryptjs                | Foundation | done    |
-| 17  | Staff passwords on bcryptjs API        | Foundation | done    |
+| #   | Feature                                | Phase      | Status      |
+| --- | -------------------------------------- | ---------- | ----------- |
+| 1   | Stack and architecture                 | Foundation | done        |
+| 2   | Data model                             | Foundation | done        |
+| 3   | Design system and UI foundation        | Foundation | done        |
+| 4   | Auth and roles                         | Foundation | done        |
+| 5   | Real time foundation and rate limiting | Foundation | done        |
+| 6   | Stay and guest check in                | Slice 1    | done    |
+| 7   | Guest order with PIN verify            | Slice 1    | planned     |
+| 8   | Kitchen live board with verify and ETA | Slice 1    | planned     |
+| 9   | Folio and room charge                  | Slice 2    | planned     |
+| 10  | Pay now record                         | Slice 2    | planned     |
+| 11  | Guest live order status                | Slice 2    | planned     |
+| 12  | Staff menu management                  | Slice 2    | planned     |
+| 13  | Order history and stay folio view      | Slice 3    | planned     |
+| 14  | Localization EN plus ID                | Slice 3    | planned     |
+| 15  | Xendit external payment                | Deferred   | planned     |
+| 16  | PIN hashing on bcryptjs                | Foundation | done        |
+| 17  | Staff passwords on bcryptjs API        | Foundation | done        |
 
 ## Foundations
 
@@ -214,12 +214,23 @@ Staff password hashing moves to bcryptjs inside the BetterAuth config, and every
 
 ## Slice 1: Core order loop (the walking skeleton)
 
-### 6. Stay and guest check in · needs a decision
+### 6. Stay and guest check in · done
 
 Front desk creates the guest account at check in. Guest sets the secret 6 digit PIN. Workflow: create stay, set PIN, validate stay dates on every order.
 **Done when:** staff can check a guest in, the guest can set a PIN, and an expired stay cannot order.
 
-- [ ] Design it (spec): `/architect stay and guest check in`
+- [x] Design it (spec): `/architect stay and guest check in`
+      Spec [0008](../specs/0008-stay-guest-check-in/index.md)
+- [x] Build it: `/develop stay and guest check in`
+      Code in `features/stays/`, `app/api/stays/`, `app/stays/`, `app/guest/setup/`, `lib/rate-limit.ts`, `proxy.ts`, `prisma/`, `scripts/prove-stay-checkin.ts`
+  - [x] Migration plus shared helpers with orderable check (AC-2, AC-4, AC-5)
+  - [x] Create thread with desk route plus conflict handling (AC-1, AC-3, AC-4)
+  - [x] PIN set thread with guest page plus throttle (AC-2, AC-7, AC-8)
+  - [x] Desk surface plus reissue plus guards plus evidence (AC-1, AC-5, AC-6, AC-7, AC-8)
+- [x] Verify it: `/check verify stay and guest check in`
+- [x] Test it: `/test stay and guest check in`
+- [x] Review it (fresh model): `/check review stay and guest check in`
+- [x] Document it: `/document stay and guest check in`
 
 ### 7. Guest order with PIN verify · needs a decision
 

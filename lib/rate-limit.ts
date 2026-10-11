@@ -11,8 +11,13 @@ export const MINT_STAY_MAX = 5;
 export const MINT_IP_MAX = 20;
 export const ORDER_STAY_MAX = 20;
 export const ORDER_IP_MAX = 60;
+export const PINSETUP_STAY_MAX = 5;
+export const PINSETUP_IP_MAX = 20;
+export const RATE_HOUR_MS = 60 * 60 * 1000;
+export const REISSUE_HOUR_MAX = 20;
 
 const hits = new LRUCache<string, number[]>({ max: 5000, ttl: RATE_WINDOW_MS });
+const hourHits = new LRUCache<string, number[]>({ max: 2000, ttl: RATE_HOUR_MS });
 
 function prune(key: string, now: number): number[] {
   const cutoff = now - RATE_WINDOW_MS;
@@ -68,6 +73,18 @@ export function orderIpKey(ip: string): string {
   return `order:ip:${ip}`;
 }
 
+export function pinSetupStayKey(stayId: string): string {
+  return `pinsetup:stay:${stayId}`;
+}
+
+export function pinSetupIpKey(ip: string): string {
+  return `pinsetup:ip:${ip}`;
+}
+
+export function reissueDeskKey(stayId: string): string {
+  return `reissue:stay:${stayId}`;
+}
+
 export function clientIp(headers: Headers): string {
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0].trim();
@@ -90,6 +107,10 @@ export function rateLimitRetryAfter(key: string, max: number): number {
  * Probe then record in one step for new call sites. Returns allow plus
  * the retry hint together so every limited answer carries timing.
  */
+/**
+ * Probe then record in one step for new call sites. Returns allow plus
+ * the retry hint together so every limited answer carries timing.
+ */
 export function takeBudget(
   key: string,
   max: number,
@@ -98,6 +119,23 @@ export function takeBudget(
     return { allowed: false, retryAfterSec: rateLimitRetryAfter(key, max) };
   }
   hitRateLimit(key, max);
+  return { allowed: true, retryAfterSec: 0 };
+}
+
+/**
+ * Hourly probe then record for slow desk budgets (spec 0008 reissue).
+ * Runs on its own hour window bucket, apart from the 15 minute buckets.
+ */
+export function takeHourBudget(key: string, max: number): { allowed: boolean; retryAfterSec: number } {
+  const now = Date.now();
+  const cutoff = now - RATE_HOUR_MS;
+  const kept = (hourHits.get(key) ?? []).filter((t) => t > cutoff);
+  if (kept.length >= max) {
+    const oldest = kept[0];
+    return { allowed: false, retryAfterSec: Math.max(1, Math.ceil((oldest + RATE_HOUR_MS - now) / 1000)) };
+  }
+  kept.push(now);
+  hourHits.set(key, kept);
   return { allowed: true, retryAfterSec: 0 };
 }
 

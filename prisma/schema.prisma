@@ -137,6 +137,8 @@ model Stay {
   failedPinAttempts Int        @default(0)
   pinLocked         Boolean    @default(false)
   pinSetAt          DateTime?
+  setupHash         String?    @unique
+  setupExpiresAt    DateTime?
   createdAt         DateTime   @default(now())
   orders            Order[]
   guests            Guest[]

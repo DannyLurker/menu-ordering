@@ -27,7 +27,10 @@ export function StaffAdmin() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<StaffRow["role"]>("FRONT_DESK");
   const [formError, setFormError] = useState<string | null>(null);
-  const [tempSecret, setTempSecret] = useState<{ email: string; secret: string } | null>(null);
+  const [tempSecret, setTempSecret] = useState<{
+    email: string;
+    secret: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const [refreshKey, setRefreshKey] = useState(0);
@@ -49,7 +52,9 @@ export function StaffAdmin() {
         },
         () => {
           if (!alive) return;
-          setLoadError("Could not load staff accounts. / Tidak dapat memuat akun staf.");
+          setLoadError(
+            "Could not load staff accounts. / Tidak dapat memuat akun staf.",
+          );
           setLoading(false);
         },
       );
@@ -75,13 +80,19 @@ export function StaffAdmin() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.trim(), role }),
       });
-      const data = (await res.json().catch(() => null)) as { tempPassword?: string } | null;
+      const data = (await res.json().catch(() => null)) as {
+        tempPassword?: string;
+      } | null;
       if (res.status === 409) {
-        setFormError("That email is already registered. / Email tersebut sudah terdaftar.");
+        setFormError(
+          "That email is already registered. / Email tersebut sudah terdaftar.",
+        );
         return;
       }
       if (!res.ok || !data?.tempPassword) {
-        setFormError("Could not create the account. Check the inputs. / Tidak dapat membuat akun.");
+        setFormError(
+          "Could not create the account. Check the inputs. / Tidak dapat membuat akun.",
+        );
         return;
       }
       setTempSecret({ email: email.trim(), secret: data.tempPassword });
@@ -89,7 +100,9 @@ export function StaffAdmin() {
       setEmail("");
       reload();
     } catch {
-      setFormError("Could not create the account. Check your connection. / Periksa koneksi Anda.");
+      setFormError(
+        "Could not create the account. Check your connection. / Periksa koneksi Anda.",
+      );
     } finally {
       setBusy(false);
     }
@@ -104,9 +117,13 @@ export function StaffAdmin() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ userId: id }),
       });
-      const data = (await res.json().catch(() => null)) as { tempPassword?: string } | null;
+      const data = (await res.json().catch(() => null)) as {
+        tempPassword?: string;
+      } | null;
       if (!res.ok || !data?.tempPassword) {
-        setFormError("Could not reissue the password. / Tidak dapat menerbitkan ulang kata sandi.");
+        setFormError(
+          "Could not reissue the password. / Tidak dapat menerbitkan ulang kata sandi.",
+        );
         return;
       }
       setTempSecret({ email: rowEmail, secret: data.tempPassword });
@@ -125,11 +142,15 @@ export function StaffAdmin() {
         body: JSON.stringify({ isDisabled: !row.isDisabled }),
       });
       if (res.status === 403) {
-        setFormError("An admin cannot disable their own account. / Admin tidak dapat menonaktifkan akun sendiri.");
+        setFormError(
+          "An admin cannot disable their own account. / Admin tidak dapat menonaktifkan akun sendiri.",
+        );
         return;
       }
       if (!res.ok) {
-        setFormError("Could not update the account. / Tidak dapat memperbarui akun.");
+        setFormError(
+          "Could not update the account. / Tidak dapat memperbarui akun.",
+        );
         return;
       }
       reload();
@@ -140,10 +161,20 @@ export function StaffAdmin() {
 
   return (
     <div className="flex flex-col gap-6">
-      <form onSubmit={onCreate} className="flex flex-col gap-3 border-b border-border pb-6">
-        <h2 className="text-base font-semibold text-foreground">Create staff account · Buat akun staf</h2>
+      <form
+        onSubmit={onCreate}
+        className="flex flex-col gap-3 border-b border-border pb-6"
+      >
+        <h2 className="text-base font-semibold text-foreground">
+          Create staff account · Buat akun staf
+        </h2>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Input label="Full name · Nama" required value={name} onChange={(e) => setName(e.target.value)} />
+          <Input
+            label="Full name · Nama"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
           <Input
             label="Staff email · Email staf"
             type="email"
@@ -152,7 +183,10 @@ export function StaffAdmin() {
             onChange={(e) => setEmail(e.target.value)}
           />
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="staff-role" className="text-sm font-medium text-foreground">
+            <label
+              htmlFor="staff-role"
+              className="text-sm font-medium text-foreground"
+            >
               Role · Peran
             </label>
             <select
@@ -179,19 +213,25 @@ export function StaffAdmin() {
             role="status"
             className="rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground"
           >
-            Temporary password for {tempSecret.email}: <strong>{tempSecret.secret}</strong> — share it once, it will
-            not show again. · Bagikan sekali, tidak akan tampil lagi.
+            Temporary password for {tempSecret.email}:{" "}
+            <strong>{tempSecret.secret}</strong> — share it once, it will not
+            show again. · Bagikan sekali, tidak akan tampil lagi.
           </p>
         ) : null}
         <div>
-          <Button type="submit" disabled={busy || !name.trim() || !email.trim()}>
+          <Button
+            type="submit"
+            disabled={busy || !name.trim() || !email.trim()}
+          >
             {busy ? "Creating…" : "Create account · Buat akun"}
           </Button>
         </div>
       </form>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold text-foreground">Accounts · Akun</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          Accounts · Akun
+        </h2>
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading… · Memuat…</p>
         ) : loadError ? (
@@ -199,7 +239,9 @@ export function StaffAdmin() {
             {loadError}
           </p>
         ) : items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No staff accounts yet. · Belum ada akun staf.</p>
+          <p className="text-sm text-muted-foreground">
+            No staff accounts yet. · Belum ada akun staf.
+          </p>
         ) : (
           <ul className="flex flex-col gap-2">
             {items.map((row) => (
@@ -208,15 +250,29 @@ export function StaffAdmin() {
                 className="flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-2"
               >
                 <span className="font-medium text-foreground">{row.name}</span>
-                <span className="text-sm text-muted-foreground">{row.email}</span>
-                <Badge tone={row.role === "ADMIN" ? "brand" : "neutral"}>{row.role}</Badge>
-                {row.mustChangePassword ? <Badge tone="ok">temp password</Badge> : null}
+                <span className="text-sm text-muted-foreground">
+                  {row.email}
+                </span>
+                <Badge tone={row.role === "ADMIN" ? "brand" : "neutral"}>
+                  {row.role}
+                </Badge>
+                {row.mustChangePassword ? (
+                  <Badge tone="ok">temp password</Badge>
+                ) : null}
                 {row.isDisabled ? <Badge tone="danger">disabled</Badge> : null}
                 <span className="ms-auto flex gap-2">
-                  <Button type="button" variant="quiet" onClick={() => void onReissue(row.id, row.email)}>
+                  <Button
+                    type="button"
+                    variant="quiet"
+                    onClick={() => void onReissue(row.id, row.email)}
+                  >
                     Reissue · Terbitkan ulang
                   </Button>
-                  <Button type="button" variant="quiet" onClick={() => void onToggleDisable(row)}>
+                  <Button
+                    type="button"
+                    variant="quiet"
+                    onClick={() => void onToggleDisable(row)}
+                  >
                     {row.isDisabled ? "Enable" : "Disable"}
                   </Button>
                 </span>
