@@ -4,7 +4,7 @@
 // lock rules live in the stay session service.
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { apiError, GENERIC_LOCKED_MESSAGE } from "@/lib/api-error";
+import { apiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import {
   MINT_IP_MAX,
@@ -14,6 +14,8 @@ import {
   isRateLimited,
   mintIpKey,
   mintStayKey,
+  rateLimitRetryAfter,
+  rateLimitedResponse,
 } from "@/lib/rate-limit";
 import {
   STAY_COOKIE,
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const { stayId, pin } = parsed.data;
   const ip = clientIp(request.headers);
   if (isRateLimited(mintIpKey(ip), MINT_IP_MAX)) {
-    return apiError("RATE_LIMITED", GENERIC_LOCKED_MESSAGE, 429);
+    return rateLimitedResponse(rateLimitRetryAfter(mintIpKey(ip), MINT_IP_MAX));
   }
   hitRateLimit(mintIpKey(ip), MINT_IP_MAX);
 
@@ -50,7 +52,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
   }
   if (isRateLimited(mintStayKey(stayId || "unknown"), MINT_STAY_MAX)) {
-    return apiError("RATE_LIMITED", GENERIC_LOCKED_MESSAGE, 429);
+    return rateLimitedResponse(
+      rateLimitRetryAfter(mintStayKey(stayId || "unknown"), MINT_STAY_MAX),
+    );
   }
   hitRateLimit(mintStayKey(stayId || "unknown"), MINT_STAY_MAX);
   return mintAndSetCookie(stayId, pin);

@@ -9,7 +9,11 @@ vi.mock("../../lib/auth", () => ({ auth: { api: { getSession: vi.fn() } } }));
 import { auth } from "../../lib/auth";
 import { getStaffUser, getStaffUserWithFlags, requireStaffRole } from "./staff.auth";
 
-const getSession = vi.mocked(auth.api.getSession);
+const getSession = vi.mocked(
+  auth.api.getSession as unknown as (
+    args: unknown,
+  ) => Promise<{ user: Record<string, unknown>; session: Record<string, unknown> } | null>,
+);
 
 function sessionUser(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {

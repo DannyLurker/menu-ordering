@@ -1,7 +1,7 @@
 # 0001. Stack and architecture
 
 **Date**: 2026-10-10
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 

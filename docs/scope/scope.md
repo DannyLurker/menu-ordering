@@ -84,29 +84,29 @@ Grandfather note: the staff and stay session slices already moved out of `lib/` 
 
 ## At a glance
 
-| #   | Feature                                | Phase      | Status      |
-| --- | -------------------------------------- | ---------- | ----------- |
-| 1   | Stack and architecture                 | Foundation | in-progress |
-| 2   | Data model                             | Foundation | in-progress |
-| 3   | Design system and UI foundation        | Foundation | in-progress |
-| 4   | Auth and roles                         | Foundation | in-progress |
-| 5   | Real time foundation and rate limiting | Foundation | planned     |
-| 6   | Stay and guest check in                | Slice 1    | planned     |
-| 7   | Guest order with PIN verify            | Slice 1    | planned     |
-| 8   | Kitchen live board with verify and ETA | Slice 1    | planned     |
-| 9   | Folio and room charge                  | Slice 2    | planned     |
-| 10  | Pay now record                         | Slice 2    | planned     |
-| 11  | Guest live order status                | Slice 2    | planned     |
-| 12  | Staff menu management                  | Slice 2    | planned     |
-| 13  | Order history and stay folio view      | Slice 3    | planned     |
-| 14  | Localization EN plus ID                | Slice 3    | planned     |
-| 15  | Xendit external payment                | Deferred   | planned     |
-| 16  | PIN hashing on bcryptjs                | Foundation | in-progress |
-| 17  | Staff passwords on bcryptjs API        | Foundation | in-progress |
+| #   | Feature                                | Phase      | Status  |
+| --- | -------------------------------------- | ---------- | ------- |
+| 1   | Stack and architecture                 | Foundation | done    |
+| 2   | Data model                             | Foundation | done    |
+| 3   | Design system and UI foundation        | Foundation | done    |
+| 4   | Auth and roles                         | Foundation | done    |
+| 5   | Real time foundation and rate limiting | Foundation | done    |
+| 6   | Stay and guest check in                | Slice 1    | planned |
+| 7   | Guest order with PIN verify            | Slice 1    | planned |
+| 8   | Kitchen live board with verify and ETA | Slice 1    | planned |
+| 9   | Folio and room charge                  | Slice 2    | planned |
+| 10  | Pay now record                         | Slice 2    | planned |
+| 11  | Guest live order status                | Slice 2    | planned |
+| 12  | Staff menu management                  | Slice 2    | planned |
+| 13  | Order history and stay folio view      | Slice 3    | planned |
+| 14  | Localization EN plus ID                | Slice 3    | planned |
+| 15  | Xendit external payment                | Deferred   | planned |
+| 16  | PIN hashing on bcryptjs                | Foundation | done    |
+| 17  | Staff passwords on bcryptjs API        | Foundation | done    |
 
 ## Foundations
 
-### 1. Stack and architecture · in-progress
+### 1. Stack and architecture · done
 
 Runnable scaffold plus recorded choices so later slices stand on real structure. Code today is a demo socket chat only.
 **Done when:** the agreed stack runs locally in docker, the empty app boots and passes build, and the stack choice is recorded in a spec.
@@ -115,7 +115,7 @@ Runnable scaffold plus recorded choices so later slices stand on real structure.
 - [x] Scaffold from the decision: `/develop stack and architecture`
       Spec [0001](../specs/0001-stack-and-architecture/index.md) · Code in `./`, `server.ts`, `app/page.tsx`, `docker-compose.yml`, `Dockerfile`, `prisma/`
 
-### 2. Data model · in-progress
+### 2. Data model · done
 
 Core tables every slice builds on: guests, stays with dates, secret 6 digit PIN, menu, orders with full status set, folio plus folio lines, payment rows, ETA minutes.
 **Done when:** entities and links support the full order loop plus folio without a breaking change later.
@@ -131,7 +131,7 @@ Core tables every slice builds on: guests, stays with dates, secret 6 digit PIN,
 - [x] Review it (fresh model): `/check review data model`
 - [x] Document it: `/document data model`
 
-### 3. Design system and UI foundation · in-progress
+### 3. Design system and UI foundation · done
 
 Visual language from the Biz Hotel Batam red and white reference, layout primitives, base components, modern and clean look for guest plus kitchen plus staff.
 **Done when:** design tokens cover type plus color plus spacing plus components, and base components handle focus and keyboard use.
@@ -148,7 +148,7 @@ Visual language from the Biz Hotel Batam red and white reference, layout primiti
 - [x] Review it (fresh model): `/check review design system & UI foundation`
 - [x] Document it: `/document design system & UI foundation`
 
-### 4. Auth and roles · in-progress
+### 4. Auth and roles · done
 
 Staff access by role (front desk, kitchen, admin) plus guest identity tied to stay and secret PIN.
 **Done when:** each role can reach only its own screens, and guest identity resolves to one stay.
@@ -165,14 +165,23 @@ Staff access by role (front desk, kitchen, admin) plus guest identity tied to st
 - [x] Review it (fresh model): `/check review auth and roles`
 - [x] Document it: `/document auth and roles`
 
-### 5. Real time foundation and rate limiting · needs a decision
+### 5. Real time foundation and rate limiting · done
 
 Shared live channel plan plus free rate limiting with LRU cache, so order events and PIN retry limits behave the same everywhere.
 **Done when:** order created plus status changed events reach the right room live, and PIN retries are limited and logged.
 
-- [ ] Design it (spec): `/architect real time foundation and rate limiting`
+- [x] Design it (spec): `/architect real time foundation and rate limiting`
+      Spec [0007](../specs/0007-realtime-foundation-rate-limiting/index.md) · Code in `server.ts`, `lib/realtime.ts`, `lib/realtime-server.ts`, `lib/realtime-client.ts`, `lib/rate-limit.ts`, `scripts/prove-realtime.ts`
+- [x] Build it: `/develop real time foundation and rate limiting`
+  - [x] Live rooms plus emit plus client join (AC-1, AC-2, AC-3, AC-4, AC-5)
+  - [x] Shared LRU limits plus 429 shape (AC-6, AC-7)
+  - [x] Proof walk plus redaction plus docs (AC-1 to AC-8)
+- [x] Verify it: `/check verify real time foundation and rate limiting`
+- [x] Test it: `/test real time foundation and rate limiting`
+- [x] Review it (fresh model): `/check review real time foundation and rate limiting`
+- [x] Document it: `/document real time foundation and rate limiting`
 
-### 16. PIN hashing on bcryptjs · in-progress
+### 16. PIN hashing on bcryptjs · done
 
 Guest PINs hash with the peer reviewed bcryptjs library instead of hand rolled scrypt, with old scrypt rows upgrading lazily on first successful verify.
 **Done when:** new PINs store as bcrypt rows, old scrypt rows still verify and then upgrade, and the auth prove walk passes unchanged.
@@ -187,7 +196,7 @@ Guest PINs hash with the peer reviewed bcryptjs library instead of hand rolled s
 - [x] Review it (fresh model): `/check review pin hashing on bcryptjs`
 - [x] Document it: `/document pin hashing on bcryptjs`
 
-### 17. Staff passwords on bcryptjs API · in-progress
+### 17. Staff passwords on bcryptjs API · done
 
 Staff password hashing moves to bcryptjs inside the BetterAuth config, and every account write goes through the BetterAuth API seams instead of direct database calls.
 **Done when:** created and reissued staff sign in against bcrypt rows, and the auth prove walk passes unchanged.
@@ -279,6 +288,7 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **Xendit external payment**: real e wallet money movement in V1.2, replaces the V1.1 record only step · needs a decision
 - **Dark theme**: full dark token set if ever wanted, needs its own spec (from spec 0003) · needs a decision
 - **Checkout settlement**: settle folio balance at checkout with receipts · needs a decision
+- **Realtime multi host** (from spec 0007): shared pub sub plus shared limiter when a second host is real; V1.1 stays single instance · needs a decision
 - **Product analytics**: measure orders, prep times, and conversion · needs a decision
 
 ## Legend

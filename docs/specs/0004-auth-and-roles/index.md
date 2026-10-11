@@ -1,7 +1,7 @@
 # 0004. Auth and roles
 
 **Date**: 2026-10-10
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 

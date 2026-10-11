@@ -7,7 +7,7 @@
 import type { NextRequest } from "next/server";
 import { toNextJsHandler } from "better-auth/next-js";
 import { auth } from "@/features/staff";
-import { apiError, GENERIC_LOCKED_MESSAGE } from "@/lib/api-error";
+import { apiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import {
   SIGN_IN_ACCOUNT_MAX,
@@ -15,6 +15,8 @@ import {
   clientIp,
   hitRateLimit,
   isRateLimited,
+  rateLimitRetryAfter,
+  rateLimitedResponse,
   signInAccountKey,
   signInIpKey,
 } from "@/lib/rate-limit";
@@ -50,7 +52,13 @@ export async function POST(request: NextRequest): Promise<Response> {
     (key && isRateLimited(signInAccountKey(key), SIGN_IN_ACCOUNT_MAX)) ||
     isRateLimited(signInIpKey(ip), SIGN_IN_IP_MAX)
   ) {
-    return apiError("RATE_LIMITED", GENERIC_LOCKED_MESSAGE, 429);
+    const limitedKey = key && isRateLimited(signInAccountKey(key), SIGN_IN_ACCOUNT_MAX)
+      ? signInAccountKey(key)
+      : signInIpKey(ip);
+    const limitedMax = limitedKey.startsWith("signin:acct")
+      ? SIGN_IN_ACCOUNT_MAX
+      : SIGN_IN_IP_MAX;
+    return rateLimitedResponse(rateLimitRetryAfter(limitedKey, limitedMax));
   }
   if (key) {
     try {
