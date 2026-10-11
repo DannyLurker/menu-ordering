@@ -4,6 +4,7 @@
 // The body parses with zod first; rotation lives in the staff service.
 import type { NextRequest } from "next/server";
 import { apiError } from "@/lib/api-error";
+import { prisma } from "@/lib/db";
 import { requireStaffRole } from "@/features/staff";
 import { StaffError, reissueBody, reissueTempPassword } from "@/features/staff";
 
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const parsed = reissueBody.safeParse(body);
   if (!parsed.success) return apiError("BAD_REQUEST", "A staff user id is required.", 400);
   try {
-    const tempPassword = await reissueTempPassword(parsed.data.userId);
+    const tempPassword = await reissueTempPassword(prisma, parsed.data.userId);
     return Response.json({ userId: parsed.data.userId, tempPassword });
   } catch (err) {
     if (err instanceof StaffError) return apiError(err.code, err.message, err.status);

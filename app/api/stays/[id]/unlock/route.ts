@@ -4,6 +4,7 @@
 // service.
 import type { NextRequest } from "next/server";
 import { apiError } from "@/lib/api-error";
+import { prisma } from "@/lib/db";
 import { requireStaffRole } from "@/features/staff";
 import { StayAuthError, unlockStay } from "@/features/stay-session";
 
@@ -12,7 +13,7 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
   if ("response" in gate) return gate.response;
   const { id } = await context.params;
   try {
-    const { stayId } = await unlockStay(id);
+    const { stayId } = await unlockStay(prisma, id);
     return Response.json({ ok: true, stayId });
   } catch (err) {
     if (err instanceof StayAuthError) return apiError(err.code, err.message, err.status);

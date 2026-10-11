@@ -8,6 +8,7 @@ import type { NextRequest } from "next/server";
 import { toNextJsHandler } from "better-auth/next-js";
 import { auth } from "@/features/staff";
 import { apiError, GENERIC_LOCKED_MESSAGE } from "@/lib/api-error";
+import { prisma } from "@/lib/db";
 import {
   SIGN_IN_ACCOUNT_MAX,
   SIGN_IN_IP_MAX,
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   if (key) {
     try {
-      await checkSignInAllowed(key);
+      await checkSignInAllowed(prisma, key);
     } catch (err) {
       if (err instanceof StaffError)
         return apiError(err.code, err.message, err.status);
@@ -66,9 +67,9 @@ export async function POST(request: NextRequest): Promise<Response> {
   const response = await basePOST(request);
   if (key) {
     if (response.ok) {
-      await recordSignInSuccess(key);
+      await recordSignInSuccess(prisma, key);
     } else if (response.status === 401) {
-      await recordSignInFailure(key);
+      await recordSignInFailure(prisma, key);
     }
   }
   return response;

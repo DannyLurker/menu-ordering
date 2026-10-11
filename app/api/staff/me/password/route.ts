@@ -3,6 +3,7 @@
 // screen. The body parses with zod first; rotation lives in the service.
 import type { NextRequest } from "next/server";
 import { apiError } from "@/lib/api-error";
+import { prisma } from "@/lib/db";
 import {
   NEXT_PASSWORD_MIN,
   StaffError,
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     );
   }
   try {
-    await changeStaffPassword({
+    await changeStaffPassword(prisma, {
       userId: user.id,
       ...parsed.data,
       headers: request.headers,

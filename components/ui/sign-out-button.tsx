@@ -4,7 +4,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { authClient } from "@/features/staff/auth-client";
+import { authClient } from "@/features/staff/staff.auth-client";
 import { Button } from "./button";
 
 export function SignOutButton({ label = "Sign out" }: { label?: string }) {

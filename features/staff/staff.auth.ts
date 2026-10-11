@@ -3,7 +3,7 @@
 // requireStaffRole, and proxy.ts mirrors the same rules at the edge.
 import { headers } from "next/headers";
 import { auth } from "../../lib/auth";
-import type { StaffRole } from "./types";
+import type { StaffRole } from "./staff.types";
 import { apiError } from "@/lib/api-error";
 
 export interface StaffUser {

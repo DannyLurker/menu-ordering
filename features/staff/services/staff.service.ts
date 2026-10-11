@@ -3,6 +3,7 @@
 // goes through the repository, so routes stay thin and any later caller
 // reuses these functions instead of copying the rules.
 import { randomBytes } from "node:crypto";
+import type { PrismaClient } from "@/generated/client";
 import { auth } from "../../../lib/auth";
 import {
   GENERIC_CREDENTIALS_MESSAGE,
@@ -17,13 +18,13 @@ import {
   listStaffRows,
   resetSignInCounters,
   updateStaffRow,
-} from "../repositories/staff-repository";
+} from "../repositories/staff.repository";
 import {
   ROLE_HOME,
   isStaffRole,
   type StaffPublic,
   type StaffRole,
-} from "../types";
+} from "../staff.types";
 
 export const LOCK_THRESHOLD = 5;
 export const LOCK_MINUTES = 15;
@@ -72,13 +73,16 @@ export function toStaffPublic(user: {
 
 export { ROLE_HOME };
 
-export async function createStaffAccount(input: {
-  name: string;
-  email: string;
-  role: StaffRole;
-}): Promise<{ id: string; tempPassword: string }> {
+export async function createStaffAccount(
+  db: PrismaClient,
+  input: {
+    name: string;
+    email: string;
+    role: StaffRole;
+  },
+): Promise<{ id: string; tempPassword: string }> {
   const email = input.email.trim().toLowerCase();
-  const existing = await findStaffByEmail(email);
+  const existing = await findStaffByEmail(db, email);
   if (existing)
     throw new StaffError(
       409,
@@ -103,19 +107,19 @@ export async function createStaffAccount(input: {
   return { id: created.id, tempPassword };
 }
 
-export async function reissueTempPassword(userId: string): Promise<string> {
-  const user = await findStaffById(userId);
+export async function reissueTempPassword(db: PrismaClient, userId: string): Promise<string> {
+  const user = await findStaffById(db, userId);
   if (!user)
     throw new StaffError(404, "UNKNOWN_USER", "Unknown staff account.");
   const tempPassword = generateTempPassword();
   const ctx = await auth.$context;
   await ctx.internalAdapter.updatePassword(userId, await ctx.password.hash(tempPassword));
-  await updateStaffRow(userId, {
+  await updateStaffRow(db, userId, {
     mustChangePassword: true,
     failedSignInAttempts: 0,
     lockedUntil: null,
   });
-  await deleteStaffSessions(userId);
+  await deleteStaffSessions(db, userId);
   return tempPassword;
 }
 
@@ -124,8 +128,8 @@ export async function reissueTempPassword(userId: string): Promise<string> {
  * so BetterAuth answers; locked or disabled accounts fail here with
  * generic messages before any password check runs.
  */
-export async function checkSignInAllowed(email: string): Promise<null> {
-  const user = await findStaffByEmail(email);
+export async function checkSignInAllowed(db: PrismaClient, email: string): Promise<null> {
+  const user = await findStaffByEmail(db, email);
   if (!user) return null;
   if (user.lockedUntil && user.lockedUntil > new Date()) {
     throw new StaffError(423, "LOCKED", GENERIC_LOCKED_MESSAGE);
@@ -139,13 +143,13 @@ export async function checkSignInAllowed(email: string): Promise<null> {
   return null;
 }
 
-export async function recordSignInSuccess(email: string): Promise<void> {
-  await resetSignInCounters(email);
+export async function recordSignInSuccess(db: PrismaClient, email: string): Promise<void> {
+  await resetSignInCounters(db, email);
 }
 
 /** Wrong password bookkeeping: five misses lock the account for 15 min. */
-export async function recordSignInFailure(email: string): Promise<void> {
-  const user = await findStaffByEmail(email);
+export async function recordSignInFailure(db: PrismaClient, email: string): Promise<void> {
+  const user = await findStaffByEmail(db, email);
   if (
     !user ||
     user.isDisabled ||
@@ -153,7 +157,7 @@ export async function recordSignInFailure(email: string): Promise<void> {
   )
     return;
   const attempts = user.failedSignInAttempts + 1;
-  await updateStaffRow(user.id, {
+  await updateStaffRow(db, user.id, {
     failedSignInAttempts: attempts,
     lockedUntil:
       attempts >= LOCK_THRESHOLD
@@ -162,12 +166,15 @@ export async function recordSignInFailure(email: string): Promise<void> {
   });
 }
 
-export async function changeStaffPassword(input: {
-  userId: string;
-  current: string;
-  next: string;
-  headers: Headers;
-}): Promise<void> {
+export async function changeStaffPassword(
+  db: PrismaClient,
+  input: {
+    userId: string;
+    current: string;
+    next: string;
+    headers: Headers;
+  },
+): Promise<void> {
   try {
     await auth.api.changePassword({
       body: {
@@ -184,28 +191,34 @@ export async function changeStaffPassword(input: {
       "The current password is wrong.",
     );
   }
-  await clearPasswordChangeFlag(input.userId);
+  await clearPasswordChangeFlag(db, input.userId);
 }
 
-export async function listStaffAccounts(input: {
-  take: number;
-  skip: number;
-}): Promise<{
+export async function listStaffAccounts(
+  db: PrismaClient,
+  input: {
+    take: number;
+    skip: number;
+  },
+): Promise<{
   items: StaffPublic[];
   total: number;
 }> {
-  const { items, total } = await listStaffRows(input.take, input.skip);
+  const { items, total } = await listStaffRows(db, input.take, input.skip);
   return { items: items.map(toStaffPublic), total };
 }
 
-export async function updateStaffAccount(input: {
-  adminId: string;
-  targetId: string;
-  role?: unknown;
-  isDisabled?: unknown;
-  unlock?: unknown;
-}): Promise<StaffPublic> {
-  const target = await findStaffById(input.targetId);
+export async function updateStaffAccount(
+  db: PrismaClient,
+  input: {
+    adminId: string;
+    targetId: string;
+    role?: unknown;
+    isDisabled?: unknown;
+    unlock?: unknown;
+  },
+): Promise<StaffPublic> {
+  const target = await findStaffById(db, input.targetId);
   if (!target)
     throw new StaffError(404, "UNKNOWN_USER", "Unknown staff account.");
   const data: {
@@ -251,7 +264,7 @@ export async function updateStaffAccount(input: {
       "An admin cannot demote or disable their own account.",
     );
   }
-  const updated = await updateStaffRow(target.id, data);
+  const updated = await updateStaffRow(db, target.id, data);
   if (input.unlock === true) {
     // Human verified recovery: the next sign in must not trip on the
     // brute force budget that caused the lock.

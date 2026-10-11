@@ -3,12 +3,13 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api-error";
+import { prisma } from "@/lib/db";
 import { STAY_COOKIE, revokeStaySession } from "@/features/stay-session";
 
 export async function POST(request: NextRequest): Promise<Response> {
   const token = request.cookies.get(STAY_COOKIE)?.value;
   if (!token) return apiError("NO_SESSION", "No stay session to revoke.", 401);
-  await revokeStaySession(token);
+  await revokeStaySession(prisma, token);
   const response = NextResponse.json({ ok: true });
   response.cookies.set(STAY_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
   return response;

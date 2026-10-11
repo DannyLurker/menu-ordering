@@ -5,6 +5,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { apiError, GENERIC_LOCKED_MESSAGE } from "@/lib/api-error";
+import { prisma } from "@/lib/db";
 import {
   MINT_IP_MAX,
   MINT_STAY_MAX,
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // throttle: the lock is the protection, and the guest needs the call
   // staff wording, not a retry later wording. Its budget is not recorded.
   if (stayId) {
-    const stay = await peekStay(stayId);
+    const stay = await peekStay(prisma, stayId);
     if (stay && (stay.pinLocked || stay.status !== "ACTIVE")) {
       return mintAndSetCookie(stayId, pin);
     }
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
 async function mintAndSetCookie(stayId: string, pin: string): Promise<Response> {
   try {
-    const { token, expiresAt } = await mintStaySession(stayId, pin);
+    const { token, expiresAt } = await mintStaySession(prisma, stayId, pin);
     const response = NextResponse.json({ ok: true, stayId, expiresAt: expiresAt.toISOString() });
     response.cookies.set(STAY_COOKIE, token, stayCookieOptions(expiresAt));
     return response;

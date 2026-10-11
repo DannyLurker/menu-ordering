@@ -16,7 +16,7 @@ import {
   reissueTempPassword,
   toStaffPublic,
   updateStaffAccount,
-} from "./staff-service";
+} from "./staff.service";
 
 const RUN = Date.now().toString(36);
 const email = (tag: string): string => `t17-${RUN}-${tag}@example.com`;
@@ -77,7 +77,7 @@ describe("toStaffPublic", () => {
 
 describe("createStaffAccount", () => {
   it("creates through the seam with a bcrypt row the temp verifies against, covers AC-1", async () => {
-    const { id, tempPassword } = await createStaffAccount({
+    const { id, tempPassword } = await createStaffAccount(prisma, {
       name: "Seam Chef",
       email: email("create"),
       role: "KITCHEN",
@@ -102,10 +102,10 @@ describe("createStaffAccount", () => {
 
   it("rejects a taken email with 409, covers AC-1", async () => {
     const dup = email("dup");
-    await createStaffAccount({ name: "First", email: dup, role: "KITCHEN" });
+    await createStaffAccount(prisma, { name: "First", email: dup, role: "KITCHEN" });
 
     await expect(
-      createStaffAccount({ name: "Second", email: dup, role: "KITCHEN" }),
+      createStaffAccount(prisma, { name: "Second", email: dup, role: "KITCHEN" }),
     ).rejects.toMatchObject({
       status: 409,
       code: "EMAIL_TAKEN",
@@ -115,14 +115,14 @@ describe("createStaffAccount", () => {
 
 describe("reissueTempPassword", () => {
   it("rotates through the seam so the old temp dies and the new one verifies, covers AC-2", async () => {
-    const created = await createStaffAccount({
+    const created = await createStaffAccount(prisma, {
       name: "Rotate Chef",
       email: email("rotate"),
       role: "KITCHEN",
     });
     const ctx = await auth.$context;
 
-    const next = await reissueTempPassword(created.id);
+    const next = await reissueTempPassword(prisma, created.id);
     const row = await prisma.user.findUnique({
       where: { id: created.id },
       include: { accounts: true },
@@ -144,7 +144,7 @@ describe("reissueTempPassword", () => {
 
   it("answers 404 for an unknown account, covers AC-2", async () => {
     await expect(
-      reissueTempPassword("00000000-0000-0000-0000-000000000000"),
+      reissueTempPassword(prisma, "00000000-0000-0000-0000-000000000000"),
     ).rejects.toMatchObject({
       status: 404,
       code: "UNKNOWN_USER",
@@ -155,41 +155,41 @@ describe("reissueTempPassword", () => {
 describe("sign in lockout", () => {
   it("locks after five misses, cools down, and unlocks by admin, covers AC-4", async () => {
     const lockEmail = email("lock");
-    const created = await createStaffAccount({
+    const created = await createStaffAccount(prisma, {
       name: "Lock Chef",
       email: lockEmail,
       role: "FRONT_DESK",
     });
 
     for (let i = 0; i < 5; i += 1) {
-      await recordSignInFailure(lockEmail);
+      await recordSignInFailure(prisma, lockEmail);
     }
     const locked = await prisma.user.findUnique({ where: { id: created.id } });
     expect(locked?.failedSignInAttempts).toBe(5);
     expect(locked?.lockedUntil instanceof Date).toBe(true);
-    await expect(checkSignInAllowed(lockEmail)).rejects.toMatchObject({
+    await expect(checkSignInAllowed(prisma, lockEmail)).rejects.toMatchObject({
       status: 423,
     });
 
-    await updateStaffAccount({
+    await updateStaffAccount(prisma, {
       adminId: created.id,
       targetId: created.id,
       unlock: true,
     });
-    await expect(checkSignInAllowed(lockEmail)).resolves.toBeNull();
+    await expect(checkSignInAllowed(prisma, lockEmail)).resolves.toBeNull();
   });
 });
 
 describe("updateStaffAccount", () => {
   it("refuses self demote and self disable with 403, covers AC-4", async () => {
-    const created = await createStaffAccount({
+    const created = await createStaffAccount(prisma, {
       name: "Admin Self",
       email: email("self"),
       role: "ADMIN",
     });
 
     await expect(
-      updateStaffAccount({
+      updateStaffAccount(prisma, {
         adminId: created.id,
         targetId: created.id,
         role: "KITCHEN",
@@ -199,7 +199,7 @@ describe("updateStaffAccount", () => {
       code: "SELF_GUARD",
     });
     await expect(
-      updateStaffAccount({
+      updateStaffAccount(prisma, {
         adminId: created.id,
         targetId: created.id,
         isDisabled: true,
@@ -208,19 +208,19 @@ describe("updateStaffAccount", () => {
   });
 
   it("rejects an unknown role and an unknown account, covers AC-4", async () => {
-    const created = await createStaffAccount({
+    const created = await createStaffAccount(prisma, {
       name: "Role Chef",
       email: email("role"),
       role: "KITCHEN",
     });
 
     await expect(
-      updateStaffAccount({ adminId: "x", targetId: created.id, role: "OWNER" }),
+      updateStaffAccount(prisma, { adminId: "x", targetId: created.id, role: "OWNER" }),
     ).rejects.toMatchObject({
       status: 422,
     });
     await expect(
-      updateStaffAccount({
+      updateStaffAccount(prisma, {
         adminId: "x",
         targetId: "00000000-0000-0000-0000-000000000000",
         role: "KITCHEN",
@@ -242,7 +242,7 @@ describe("updateStaffAccount", () => {
 
 describe("listStaffAccounts", () => {
   it("pages the roster with totals", async () => {
-    const { items, total } = await listStaffAccounts({ take: 1, skip: 0 });
+    const { items, total } = await listStaffAccounts(prisma, { take: 1, skip: 0 });
 
     expect(items).toHaveLength(1);
     expect(total).toBeGreaterThanOrEqual(1);

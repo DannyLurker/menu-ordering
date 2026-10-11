@@ -19,6 +19,6 @@ export {
   stayCoversToday,
   unlockStay,
   type StayMint,
-} from "./services/stay-session-service";
+} from "./services/stay-session.service";
 export { hashPin, verifyPin } from "../../lib/pin";
-export { mintBody } from "./schemas";
+export { mintBody } from "./stay-session.schemas";

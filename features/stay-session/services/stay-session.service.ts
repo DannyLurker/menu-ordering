@@ -3,6 +3,7 @@
 // thin and later slices (checkout, ordering) reuse these functions.
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
+import type { PrismaClient } from "@/generated/client";
 import { mintStayKey, resetRateLimit } from "@/lib/rate-limit";
 import {
   createStaySessionRow,
@@ -16,7 +17,7 @@ import {
   revokeSessionsByTokenHash,
   revokeSessionsForStay,
   updatePinHash,
-} from "../repositories/stay-session-repository";
+} from "../repositories/stay-session.repository";
 import { hashPin, isScryptRow, verifyPin } from "../../../lib/pin";
 
 export const STAY_COOKIE = "stay_session";
@@ -81,10 +82,11 @@ function liveReuseError(): StayAuthError {
 }
 
 export async function mintStaySession(
+  db: PrismaClient,
   stayId: string,
   pin: string,
 ): Promise<StayMint> {
-  const stay = await findStayById(stayId);
+  const stay = await findStayById(db, stayId);
   if (!stay || !/^\d{6}$/.test(pin)) {
     throw new StayAuthError(401, "WRONG_PIN", "Wrong PIN. Try again.");
   }
@@ -106,8 +108,8 @@ export async function mintStaySession(
   if (!matched) {
     const attempts = stay.failedPinAttempts + 1;
     const locked = attempts >= PIN_LOCK_THRESHOLD;
-    await recordWrongPinAttempt(stay.id, attempts, locked);
-    if (locked) await revokeSessionsForStay(stay.id);
+    await recordWrongPinAttempt(db, stay.id, attempts, locked);
+    if (locked) await revokeSessionsForStay(db, stay.id);
     throw new StayAuthError(
       401,
       locked ? "STAY_LOCKED" : "WRONG_PIN",
@@ -119,19 +121,19 @@ export async function mintStaySession(
   if (isScryptRow(stay.pinHash)) {
     // Lazy upgrade: the PIN proved itself against the old format, so the
     // row converges to bcrypt now with no staff action and no flag day.
-    await updatePinHash(stay.id, await hashPin(pin));
+    await updatePinHash(db, stay.id, await hashPin(pin));
   }
   const now = new Date();
-  await resetFailedPinCount(stay.id);
+  await resetFailedPinCount(db, stay.id);
   // Expired rows are dead history: revoke them so the live index only ever
   // sees the one row that matters. A still live row means 409 with a hint.
-  await revokeExpiredSessions(stay.id, now);
-  const live = await findLiveSession(stay.id, now);
+  await revokeExpiredSessions(db, stay.id, now);
+  const live = await findLiveSession(db, stay.id, now);
   if (live) throw liveReuseError();
   const token = randomBytes(STAY_TOKEN_BYTES).toString("base64url");
   const expiresAt = checkoutExpiry(stay.checkOut, now);
   try {
-    await createStaySessionRow({
+    await createStaySessionRow(db, {
       stayId: stay.id,
       tokenHash: hashStayToken(token),
       expiresAt,
@@ -147,17 +149,18 @@ export async function mintStaySession(
  * inactive stay answers with its own message before any budget is spent.
  */
 export async function peekStay(
+  db: PrismaClient,
   stayId: string,
 ): Promise<{ pinLocked: boolean; status: string } | null> {
-  return findStayById(stayId);
+  return findStayById(db, stayId);
 }
 
 /** Desk or admin PIN unlock: clears the counter and lock, frees the mint
  * budget, and leaves the session revoked so the guest mints again. */
-export async function unlockStay(stayId: string): Promise<{ stayId: string }> {
-  const stay = await findStayById(stayId);
+export async function unlockStay(db: PrismaClient, stayId: string): Promise<{ stayId: string }> {
+  const stay = await findStayById(db, stayId);
   if (!stay) throw new StayAuthError(404, "UNKNOWN_STAY", "Unknown stay.");
-  await resetPinCounters(stay.id);
+  await resetPinCounters(db, stay.id);
   // Human verified recovery: the guest's next mint must not trip on the
   // brute force budget that caused the lock.
   resetRateLimit(mintStayKey(stay.id));
@@ -166,20 +169,21 @@ export async function unlockStay(stayId: string): Promise<{ stayId: string }> {
 
 /** Resolve a presented token to its stay id, or null when revoked/expired. */
 export async function resolveStaySession(
+  db: PrismaClient,
   token: string,
 ): Promise<string | null> {
-  const row = await findSessionRow(hashStayToken(token));
+  const row = await findSessionRow(db, hashStayToken(token));
   if (!row || row.revoked || row.expiresAt <= new Date()) return null;
   return row.stayId;
 }
 
-export async function revokeStaySession(token: string): Promise<void> {
-  await revokeSessionsByTokenHash(hashStayToken(token));
+export async function revokeStaySession(db: PrismaClient, token: string): Promise<void> {
+  await revokeSessionsByTokenHash(db, hashStayToken(token));
 }
 
 /** Checkout and PIN lock revoke at once (AC-6, AC-7). Later slices call this. */
-export async function revokeStaySessionsForStay(stayId: string): Promise<void> {
-  await revokeSessionsForStay(stayId);
+export async function revokeStaySessionsForStay(db: PrismaClient, stayId: string): Promise<void> {
+  await revokeSessionsForStay(db, stayId);
 }
 
 export function stayCookieOptions(expiresAt: Date): {

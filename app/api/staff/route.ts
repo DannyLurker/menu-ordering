@@ -4,6 +4,7 @@
 // account rules live in the staff service.
 import type { NextRequest } from "next/server";
 import { apiError } from "@/lib/api-error";
+import { prisma } from "@/lib/db";
 import { requireStaffRole } from "@/features/staff";
 import {
   StaffError,
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   if ("response" in gate) return gate.response;
   const query = staffListQuery.safeParse(Object.fromEntries(new URL(request.url).searchParams.entries()));
   if (!query.success) return apiError("INVALID_INPUT", "Check the paging fields and try again.", 422);
-  const { items, total } = await listStaffAccounts(query.data);
+  const { items, total } = await listStaffAccounts(prisma, query.data);
   return Response.json({ items, total, take: query.data.take, skip: query.data.skip });
 }
 
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return apiError("INVALID_INPUT", "Give a name and a valid email.", 422);
   }
   try {
-    const { id, tempPassword } = await createStaffAccount(parsed.data);
+    const { id, tempPassword } = await createStaffAccount(prisma, parsed.data);
     return Response.json({ id, tempPassword }, { status: 201 });
   } catch (err) {
     if (err instanceof StaffError) return apiError(err.code, err.message, err.status);

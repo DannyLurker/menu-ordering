@@ -12,7 +12,7 @@ import {
   mintStaySession,
   resolveStaySession,
   revokeStaySession,
-} from "./stay-session-service";
+} from "./stay-session.service";
 
 const RUN = Date.now().toString(36);
 const room = (tag: string): string => `T16-${RUN}-${tag}`;
@@ -55,7 +55,7 @@ describe("mintStaySession lazy upgrade", () => {
   it("mints on a scrypt row and upgrades it to bcrypt, covers AC-2, AC-3", async () => {
     const id = await makeStay("upgrade", scryptRow("654321"));
 
-    const minted = await mintStaySession(id, "654321");
+    const minted = await mintStaySession(prisma, id, "654321");
     const row = await prisma.stay.findUnique({ where: { id } });
 
     expect(minted.token.length).toBeGreaterThan(0);
@@ -66,7 +66,7 @@ describe("mintStaySession lazy upgrade", () => {
   it("rejects a wrong PIN on a scrypt row without upgrading it, covers AC-2", async () => {
     const id = await makeStay("wrong", scryptRow("654321"));
 
-    await expect(mintStaySession(id, "000000")).rejects.toMatchObject({ status: 401, code: "WRONG_PIN" });
+    await expect(mintStaySession(prisma, id, "000000")).rejects.toMatchObject({ status: 401, code: "WRONG_PIN" });
     const row = await prisma.stay.findUnique({ where: { id } });
 
     expect(row?.pinHash.startsWith("scrypt$")).toBe(true);
@@ -76,25 +76,25 @@ describe("mintStaySession lazy upgrade", () => {
   it("mints on a bcrypt row and resolves then revokes the session, covers AC-1, AC-4", async () => {
     const id = await makeStay("bcrypt", await hashPin("654321"));
 
-    const minted = await mintStaySession(id, "654321");
-    expect(await resolveStaySession(minted.token)).toBe(id);
+    const minted = await mintStaySession(prisma, id, "654321");
+    expect(await resolveStaySession(prisma, minted.token)).toBe(id);
 
-    await revokeStaySession(minted.token);
-    expect(await resolveStaySession(minted.token)).toBeNull();
+    await revokeStaySession(prisma, minted.token);
+    expect(await resolveStaySession(prisma, minted.token)).toBeNull();
   });
 
   it("refuses a locked stay without touching its hash, covers AC-4", async () => {
     const before = scryptRow("654321");
     const id = await makeStay("locked", before, true);
 
-    await expect(mintStaySession(id, "654321")).rejects.toMatchObject({ status: 403 });
+    await expect(mintStaySession(prisma, id, "654321")).rejects.toMatchObject({ status: 403 });
     const row = await prisma.stay.findUnique({ where: { id } });
 
     expect(row?.pinHash).toBe(before);
   });
 
   it("answers 401 for an unknown stay, covers AC-4", async () => {
-    await expect(mintStaySession("00000000-0000-0000-0000-000000000000", "654321")).rejects.toBeInstanceOf(
+    await expect(mintStaySession(prisma, "00000000-0000-0000-0000-000000000000", "654321")).rejects.toBeInstanceOf(
       StayAuthError,
     );
   });

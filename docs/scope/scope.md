@@ -80,7 +80,7 @@ Layer rules every slice follows:
 6. Zod validates every request body and query string at the route boundary. Handlers parse with a schema first and answer 400 or 422 on failure; services receive typed values and never revalidate shapes.
 7. Within each domain slice under src/features/[feature-name]/, files MUST follow a dot-delimited layer suffix naming convention matching the feature name: [feature-name].layer.ts
 
-Grandfather note: the staff and stay session slices already moved out of `lib/` into `features/`, but they still import the shared Prisma instance directly. They adopt rules 5 and 6 the next time either slice is touched; new code follows all six rules now, and `/sync` records each move.
+Grandfather note: the staff and stay session slices already moved out of `lib/` into `features/`. Rule 5 is adopted: repositories take `db: PrismaClient` as the first argument and import only the type, services take `db` first and hand it to repositories, and every route handler imports `prisma` from `lib/db.ts` and passes it in. Tests hand the instance (real or mock) instead of the slices importing it. `lib/auth.ts` keeps the shared instance for the BetterAuth adapter, and `staff.auth.ts` gates stay session based with no Prisma of their own.
 
 ## At a glance
 
@@ -178,7 +178,7 @@ Guest PINs hash with the peer reviewed bcryptjs library instead of hand rolled s
 **Done when:** new PINs store as bcrypt rows, old scrypt rows still verify and then upgrade, and the auth prove walk passes unchanged.
 
 - [x] Design it (spec): `/architect hashing: bcryptjs for PINs with scrypt compat`
-      Spec [0005](../specs/0005-pin-hashing-bcrypt/index.md) · Code in `features/stay-session/pin.ts`, `features/stay-session/pin.test.ts`, `features/stay-session/services/stay-session-service.ts`, `features/stay-session/repositories/stay-session-repository.ts`, `prisma/seed.ts`, `scripts/prove-auth-and-roles.ts`, `scripts/prove-data-model.ts`
+      Spec [0005](../specs/0005-pin-hashing-bcrypt/index.md) · Code in `features/stay-session/pin.ts`, `features/stay-session/pin.test.ts`, `features/stay-session/services/stay-session.service.ts`, `features/stay-session/repositories/stay-session.repository.ts`, `prisma/seed.ts`, `scripts/prove-auth-and-roles.ts`, `scripts/prove-data-model.ts`
 - [x] Build it: `/develop pin hashing on bcryptjs`
   - [x] Hasher plus dual verify on bcryptjs (AC-1, AC-2, AC-5, AC-6)
   - [x] Lazy rehash plus callers plus gates (AC-3, AC-4)
@@ -193,7 +193,7 @@ Staff password hashing moves to bcryptjs inside the BetterAuth config, and every
 **Done when:** created and reissued staff sign in against bcrypt rows, and the auth prove walk passes unchanged.
 
 - [x] Design it (spec): `/architect staff password hashing: bcryptjs with BetterAuth verify compat`
-      Spec [0006](../specs/0006-staff-passwords-bcrypt-api/index.md) · Code in `lib/auth.ts`, `features/staff/services/staff-service.ts`, `features/staff/repositories/staff-repository.ts`, `prisma/seed.ts`, `scripts/prove-auth-and-roles.ts`
+      Spec [0006](../specs/0006-staff-passwords-bcrypt-api/index.md) · Code in `lib/auth.ts`, `features/staff/services/staff.service.ts`, `features/staff/repositories/staff.repository.ts`, `prisma/seed.ts`, `scripts/prove-auth-and-roles.ts`
 - [x] Build it: `/develop staff passwords on bcryptjs API`
   - [x] Bcrypt hasher in BetterAuth config (AC-1)
   - [x] Creation plus reissue plus seed through seams, direct writes retired (AC-1, AC-2, AC-3, AC-5)

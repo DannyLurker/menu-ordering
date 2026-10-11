@@ -38,8 +38,10 @@ export const auth = betterAuth({
     // Single hashing authority (spec 0006): the same functions write temp
     // secrets and verify them at sign in, so the two can never disagree.
     password: {
-      hash: (password: string) => bcryptHash(password, STAFF_PASSWORD_COST),
-      verify: ({ hash, password }: { hash: string; password: string }) => bcryptCompare(password, hash),
+      hash: async (password: string) =>
+        await bcryptHash(password, STAFF_PASSWORD_COST),
+      verify: async ({ hash, password }: { hash: string; password: string }) =>
+        await bcryptCompare(password, hash),
     },
   },
   session: {

@@ -7,7 +7,7 @@ vi.mock("next/headers", () => ({ headers: vi.fn(async () => new Headers()) }));
 vi.mock("../../lib/auth", () => ({ auth: { api: { getSession: vi.fn() } } }));
 
 import { auth } from "../../lib/auth";
-import { getStaffUser, getStaffUserWithFlags, requireStaffRole } from "./staff-auth";
+import { getStaffUser, getStaffUserWithFlags, requireStaffRole } from "./staff.auth";
 
 const getSession = vi.mocked(auth.api.getSession);
 

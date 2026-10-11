@@ -3,6 +3,7 @@
 // parses with zod first; the update rules live in the staff service.
 import type { NextRequest } from "next/server";
 import { apiError } from "@/lib/api-error";
+import { prisma } from "@/lib/db";
 import { StaffError, requireStaffRole, updateStaffAccount, updateStaffBody } from "@/features/staff";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }): Promise<Response> {
@@ -18,7 +19,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   const parsed = updateStaffBody.safeParse(body);
   if (!parsed.success) return apiError("INVALID_INPUT", "Check the fields and try again.", 422);
   try {
-    const updated = await updateStaffAccount({ adminId: gate.user.id, targetId: id, ...parsed.data });
+    const updated = await updateStaffAccount(prisma, { adminId: gate.user.id, targetId: id, ...parsed.data });
     return Response.json(updated);
   } catch (err) {
     if (err instanceof StaffError) return apiError(err.code, err.message, err.status);

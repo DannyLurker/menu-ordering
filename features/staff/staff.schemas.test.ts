@@ -7,7 +7,7 @@ import {
   reissueBody,
   staffListQuery,
   updateStaffBody,
-} from "./schemas";
+} from "./staff.schemas";
 
 describe("createStaffBody", () => {
   it("accepts a trimmed name, a valid email, and a known role", () => {
