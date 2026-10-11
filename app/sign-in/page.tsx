@@ -6,7 +6,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "@/features/staff/auth-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container, Stack } from "@/components/ui/primitives";

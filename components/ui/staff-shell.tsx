@@ -2,7 +2,7 @@
 // each role land in their own slices; this shell owns the shared header,
 // role badge, and sign out so every role home reads as one product.
 import type { ReactNode } from "react";
-import type { StaffRole } from "@/lib/staff";
+import type { StaffRole } from "@/features/staff";
 import { Badge } from "./badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card";
 import { Container, Stack } from "./primitives";

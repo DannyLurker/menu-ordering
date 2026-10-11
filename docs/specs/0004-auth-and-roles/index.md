@@ -183,6 +183,7 @@ Plan, build with `/develop`, prove with `/check verify` (role screens gate, mint
 - [ ] Password reset by email waits for a mail vendor; temp password reissue by admin is the recovery path until then.
 - [ ] BetterAuth plus auth area conventions are not yet in `AGENTS.md`. Owned by `/sync` or `/audit`; this skill does not edit context files.
 - [ ] Library permission log per working agreement 1 lives in this spec under Feature design.
+- [ ] Staff password hashing and account creation moved to spec 0006 (bcryptjs through the BetterAuth API seams); the direct write path described here no longer applies to credentials.
 
 ## Rationale
 

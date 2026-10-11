@@ -7,10 +7,10 @@
 // pnpm tsx scripts/prove-auth-and-roles.ts
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID, scryptSync } from "node:crypto";
 import { prisma } from "../lib/db";
+import { auth } from "../features/staff";
 import { hashPin } from "../lib/pin";
-import { hashPassword } from "better-auth/crypto";
 
 const PORT = 3111;
 const ORIGIN = `http://localhost:${PORT}`;
@@ -39,8 +39,11 @@ class Jar {
     return [...this.store.entries()].map(([k, v]) => `${k}=${v}`).join("; ");
   }
   save(res: Response): void {
-    const getSetCookie = (res.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie;
-    const setCookies: string[] = typeof getSetCookie === "function" ? getSetCookie.call(res.headers) : [];
+    const getSetCookie = (
+      res.headers as Headers & { getSetCookie?: () => string[] }
+    ).getSetCookie;
+    const setCookies: string[] =
+      typeof getSetCookie === "function" ? getSetCookie.call(res.headers) : [];
     for (const line of setCookies) {
       const pair = line.split(";")[0];
       const eq = pair.indexOf("=");
@@ -66,7 +69,9 @@ async function api(
       origin: ORIGIN,
       referer: `${ORIGIN}/sign-in`,
       cookie: jar.header,
-      ...(init.body !== undefined ? { "content-type": "application/json" } : {}),
+      ...(init.body !== undefined
+        ? { "content-type": "application/json" }
+        : {}),
     },
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
   });
@@ -82,7 +87,10 @@ async function api(
 
 function waitForServer(proc: ChildProcess): Promise<void> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("server did not boot in time")), 90000);
+    const timer = setTimeout(
+      () => reject(new Error("server did not boot in time")),
+      90000,
+    );
     let out = "";
     const onData = (chunk: Buffer): void => {
       out += chunk.toString();
@@ -93,17 +101,23 @@ function waitForServer(proc: ChildProcess): Promise<void> {
     };
     proc.stdout?.on("data", onData);
     proc.stderr?.on("data", onData);
-    proc.on("exit", () => reject(new Error(`server exited during boot: ${out.slice(-500)}`)));
+    proc.on("exit", () =>
+      reject(new Error(`server exited during boot: ${out.slice(-500)}`)),
+    );
   });
 }
 
 function startServer(): ChildProcess {
   // Production server on a scratch port: the dev lock belongs to the running
   // dev server, and a fresh process means fresh LRU budgets.
-  return spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(PORT)], {
-    env: { ...process.env, BETTER_AUTH_URL: ORIGIN },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  return spawn(
+    process.execPath,
+    ["node_modules/next/dist/bin/next", "start", "-p", String(PORT)],
+    {
+      env: { ...process.env, BETTER_AUTH_URL: ORIGIN },
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
 }
 
 async function restartServer(proc: ChildProcess): Promise<ChildProcess> {
@@ -117,28 +131,42 @@ async function restartServer(proc: ChildProcess): Promise<ChildProcess> {
 async function setup(): Promise<{ adminEmail: string; adminPassword: string }> {
   const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase() ?? "";
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "";
-  if (!adminEmail || !adminPassword) throw new Error("SEED_ADMIN_EMAIL/PASSWORD required in .env");
+  if (!adminEmail || !adminPassword)
+    throw new Error("SEED_ADMIN_EMAIL/PASSWORD required in .env");
   // Idempotent scratch state: fresh PIN, unlocked demo stay, no prove users.
   await prisma.staySession.deleteMany({ where: { stayId: DEMO_STAY } });
   await prisma.stay.update({
     where: { id: DEMO_STAY },
-    data: { status: "ACTIVE", pinHash: hashPin(DEMO_PIN), failedPinAttempts: 0, pinLocked: false },
+    data: {
+      status: "ACTIVE",
+      pinHash: await hashPin(DEMO_PIN),
+      failedPinAttempts: 0,
+      pinLocked: false,
+    },
   });
-  await prisma.user.deleteMany({ where: { email: { in: [KITCHEN_EMAIL, DESK_EMAIL, LOCK_EMAIL] } } });
+  await prisma.user.deleteMany({
+    where: { email: { in: [KITCHEN_EMAIL, DESK_EMAIL, LOCK_EMAIL] } },
+  });
   const admin = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (admin) {
     // Deterministic scratch state: the walk rotates this secret in step 1,
-    // so every run starts from the env value again (dev only).
-    await prisma.$transaction([
-      prisma.account.updateMany({
-        where: { userId: admin.id, providerId: "credential" },
-        data: { password: await hashPassword(adminPassword), updatedAt: new Date() },
-      }),
-      prisma.user.update({
-        where: { id: admin.id },
-        data: { mustChangePassword: true, isDisabled: false, failedSignInAttempts: 0, lockedUntil: null, role: "ADMIN" },
-      }),
-    ]);
+    // so every run starts from the env value again (dev only). The
+    // credential rotates through the seam; flags stay direct writes.
+    const ctx = await auth.$context;
+    await ctx.internalAdapter.updatePassword(
+      admin.id,
+      await ctx.password.hash(adminPassword),
+    );
+    await prisma.user.update({
+      where: { id: admin.id },
+      data: {
+        mustChangePassword: true,
+        isDisabled: false,
+        failedSignInAttempts: 0,
+        lockedUntil: null,
+        role: "ADMIN",
+      },
+    });
   }
   return { adminEmail, adminPassword };
 }
@@ -156,126 +184,314 @@ async function main(): Promise<void> {
     const locked = new Jar();
 
     // 1. Admin signs in with the seeded secret, then rotates it (AC-1, AC-8).
-    let r = await api("/api/auth/sign-in/email", admin, { body: { email: adminEmail, password: adminPassword } });
-    check("admin signs in with seed secret", r.status === 200, `status ${r.status}`);
+    let r = await api("/api/auth/sign-in/email", admin, {
+      body: { email: adminEmail, password: adminPassword },
+    });
+    check(
+      "admin signs in with seed secret",
+      r.status === 200,
+      `status ${r.status}`,
+    );
     r = await api("/api/staff/me", admin);
     check(
       "seeded admin carries must change",
-      r.status === 200 && (r.json as { mustChangePassword?: boolean })?.mustChangePassword === true,
+      r.status === 200 &&
+        (r.json as { mustChangePassword?: boolean })?.mustChangePassword ===
+          true,
       `status ${r.status}`,
     );
-    r = await api("/api/staff/me/password", admin, { body: { current: adminPassword, next: ADMIN_NEW_PASSWORD } });
+    r = await api("/api/staff/me/password", admin, {
+      body: { current: adminPassword, next: ADMIN_NEW_PASSWORD },
+    });
     check("admin sets a real password", r.status === 200, `status ${r.status}`);
 
     // 2. Admin creates kitchen, desk, and lock probe staff (AC-2, AC-8).
-    r = await api("/api/staff", admin, { body: { name: "Prove Kitchen", email: KITCHEN_EMAIL, role: "KITCHEN" } });
-    const kitchenTemp = (r.json as { tempPassword?: string })?.tempPassword ?? "";
-    check("admin creates kitchen staff with temp secret", r.status === 201 && kitchenTemp.length === 16, `status ${r.status}`);
-    r = await api("/api/staff", admin, { body: { name: "Prove Desk", email: DESK_EMAIL, role: "FRONT_DESK" } });
+    r = await api("/api/staff", admin, {
+      body: { name: "Prove Kitchen", email: KITCHEN_EMAIL, role: "KITCHEN" },
+    });
+    const kitchenTemp =
+      (r.json as { tempPassword?: string })?.tempPassword ?? "";
+    check(
+      "admin creates kitchen staff with temp secret",
+      r.status === 201 && kitchenTemp.length === 16,
+      `status ${r.status}`,
+    );
+    r = await api("/api/staff", admin, {
+      body: { name: "Prove Desk", email: DESK_EMAIL, role: "FRONT_DESK" },
+    });
     const deskTemp = (r.json as { tempPassword?: string })?.tempPassword ?? "";
-    check("admin creates desk staff with temp secret", r.status === 201 && deskTemp.length === 16, `status ${r.status}`);
-    r = await api("/api/staff", admin, { body: { name: "Prove Locked", email: LOCK_EMAIL, role: "FRONT_DESK" } });
+    check(
+      "admin creates desk staff with temp secret",
+      r.status === 201 && deskTemp.length === 16,
+      `status ${r.status}`,
+    );
+    r = await api("/api/staff", admin, {
+      body: { name: "Prove Locked", email: LOCK_EMAIL, role: "FRONT_DESK" },
+    });
     const lockTemp = (r.json as { tempPassword?: string })?.tempPassword ?? "";
-    check("admin creates lock probe staff", r.status === 201 && lockTemp.length === 16, `status ${r.status}`);
+    check(
+      "admin creates lock probe staff",
+      r.status === 201 && lockTemp.length === 16,
+      `status ${r.status}`,
+    );
     const lockId = (r.json as { id?: string })?.id ?? "";
-    r = await api("/api/staff", admin, { body: { name: "Dupe", email: DESK_EMAIL, role: "KITCHEN" } });
+    r = await api("/api/staff", admin, {
+      body: { name: "Dupe", email: DESK_EMAIL, role: "KITCHEN" },
+    });
     check("duplicate email gets 409", r.status === 409, `status ${r.status}`);
 
     // 3. Kitchen signs in with temp, is forced to rotate, reaches the board,
     // but cannot reach staff admin (AC-1, AC-2, AC-8).
-    r = await api("/api/auth/sign-in/email", kitchen, { body: { email: KITCHEN_EMAIL, password: kitchenTemp } });
-    check("kitchen signs in with temp secret", r.status === 200, `status ${r.status}`);
+    r = await api("/api/auth/sign-in/email", kitchen, {
+      body: { email: KITCHEN_EMAIL, password: kitchenTemp },
+    });
+    check(
+      "kitchen signs in with temp secret",
+      r.status === 200,
+      `status ${r.status}`,
+    );
     r = await api("/kitchen", kitchen);
-    check("kitchen without new password is sent to change it", r.status === 307 && r.location === "/change-password", `status ${r.status} loc ${r.location}`);
-    r = await api("/api/staff/me/password", kitchen, { body: { current: kitchenTemp, next: STAFF_NEW_PASSWORD } });
-    check("kitchen sets a real password", r.status === 200, `status ${r.status}`);
+    check(
+      "kitchen without new password is sent to change it",
+      r.status === 307 && r.location === "/change-password",
+      `status ${r.status} loc ${r.location}`,
+    );
+    r = await api("/api/staff/me/password", kitchen, {
+      body: { current: kitchenTemp, next: STAFF_NEW_PASSWORD },
+    });
+    check(
+      "kitchen sets a real password",
+      r.status === 200,
+      `status ${r.status}`,
+    );
     r = await api("/kitchen", kitchen);
     check("kitchen reaches the board", r.status === 200, `status ${r.status}`);
     r = await api("/staff", kitchen);
-    check("kitchen is bounced off staff admin", r.status === 307 && r.location === "/kitchen", `status ${r.status} loc ${r.location}`);
+    check(
+      "kitchen is bounced off staff admin",
+      r.status === 307 && r.location === "/kitchen",
+      `status ${r.status} loc ${r.location}`,
+    );
     r = await api("/api/staff", kitchen);
-    check("kitchen cannot list staff (403)", r.status === 403, `status ${r.status}`);
+    check(
+      "kitchen cannot list staff (403)",
+      r.status === 403,
+      `status ${r.status}`,
+    );
 
     // 4. Desk signs in, rotates the temp secret, and unlocks stays;
     // kitchen cannot unlock (AC-2, AC-7, AC-8).
-    r = await api("/api/auth/sign-in/email", desk, { body: { email: DESK_EMAIL, password: deskTemp } });
+    r = await api("/api/auth/sign-in/email", desk, {
+      body: { email: DESK_EMAIL, password: deskTemp },
+    });
     check("desk signs in", r.status === 200, `status ${r.status}`);
-    r = await api("/api/staff/me/password", desk, { body: { current: deskTemp, next: STAFF_NEW_PASSWORD } });
+    r = await api("/api/staff/me/password", desk, {
+      body: { current: deskTemp, next: STAFF_NEW_PASSWORD },
+    });
     check("desk sets a real password", r.status === 200, `status ${r.status}`);
     r = await api(`/api/stays/${DEMO_STAY}/unlock`, desk, { method: "POST" });
     check("desk unlocks a stay", r.status === 200, `status ${r.status}`);
-    r = await api(`/api/stays/${DEMO_STAY}/unlock`, kitchen, { method: "POST" });
-    check("kitchen cannot unlock (403)", r.status === 403, `status ${r.status}`);
+    r = await api(`/api/stays/${DEMO_STAY}/unlock`, kitchen, {
+      method: "POST",
+    });
+    check(
+      "kitchen cannot unlock (403)",
+      r.status === 403,
+      `status ${r.status}`,
+    );
 
     // 5. Wrong staff passwords stay generic, then lock durably: the restart
     // wipes LRU, so the 423 after boot proves the Postgres columns (AC-5).
     let generic = true;
     for (let i = 0; i < 5; i += 1) {
-      const w = await api("/api/auth/sign-in/email", locked, { body: { email: LOCK_EMAIL, password: "wrong-password-1" } });
+      const w = await api("/api/auth/sign-in/email", locked, {
+        body: { email: LOCK_EMAIL, password: "wrong-password-1" },
+      });
       if (w.status !== 401) generic = false;
       if (JSON.stringify(w.json).includes(LOCK_EMAIL)) generic = false;
     }
     check("five wrong passwords fail generic 401", generic, "");
     proc = await restartServer(proc);
     console.log("ok: scratch server rebooted (LRU wiped)");
-    r = await api("/api/auth/sign-in/email", locked, { body: { email: LOCK_EMAIL, password: lockTemp } });
-    check("correct password still cools down after reboot (423)", r.status === 423, `status ${r.status}`);
-    r = await api(`/api/staff/${lockId}`, admin, { method: "PATCH", body: { unlock: true } });
-    check("admin clears the staff lock", r.status === 200, `status ${r.status}`);
-    r = await api("/api/auth/sign-in/email", locked, { body: { email: LOCK_EMAIL, password: lockTemp } });
-    check("staffer signs in after unlock", r.status === 200, `status ${r.status}`);
+    r = await api("/api/auth/sign-in/email", locked, {
+      body: { email: LOCK_EMAIL, password: lockTemp },
+    });
+    check(
+      "correct password still cools down after reboot (423)",
+      r.status === 423,
+      `status ${r.status}`,
+    );
+    r = await api(`/api/staff/${lockId}`, admin, {
+      method: "PATCH",
+      body: { unlock: true },
+    });
+    check(
+      "admin clears the staff lock",
+      r.status === 200,
+      `status ${r.status}`,
+    );
+    r = await api("/api/auth/sign-in/email", locked, {
+      body: { email: LOCK_EMAIL, password: lockTemp },
+    });
+    check(
+      "staffer signs in after unlock",
+      r.status === 200,
+      `status ${r.status}`,
+    );
 
     // 6. Admin cannot demote or disable themselves (AC-8).
     const meAdmin = await api("/api/staff/me", admin);
     const adminId = (meAdmin.json as { id?: string })?.id ?? "";
-    r = await api(`/api/staff/${adminId}`, admin, { method: "PATCH", body: { isDisabled: true } });
-    check("admin cannot disable self (403)", r.status === 403, `status ${r.status}`);
-    r = await api(`/api/staff/${adminId}`, admin, { method: "PATCH", body: { role: "KITCHEN" } });
-    check("admin cannot demote self (403)", r.status === 403, `status ${r.status}`);
+    r = await api(`/api/staff/${adminId}`, admin, {
+      method: "PATCH",
+      body: { isDisabled: true },
+    });
+    check(
+      "admin cannot disable self (403)",
+      r.status === 403,
+      `status ${r.status}`,
+    );
+    r = await api(`/api/staff/${adminId}`, admin, {
+      method: "PATCH",
+      body: { role: "KITCHEN" },
+    });
+    check(
+      "admin cannot demote self (403)",
+      r.status === 403,
+      `status ${r.status}`,
+    );
 
     // 7. Guest PIN: wrong asks again, five lock, unlock restores access,
     // mint is single live per stay (AC-3, AC-7).
     const guest = new Jar();
     let pinGeneric = true;
     for (let i = 0; i < 5; i += 1) {
-      const w = await api("/api/stay-session/mint", guest, { body: { stayId: DEMO_STAY, pin: "000000" } });
+      const w = await api("/api/stay-session/mint", guest, {
+        body: { stayId: DEMO_STAY, pin: "000000" },
+      });
       if (w.status !== 401) pinGeneric = false;
     }
     check("five wrong PINs ask again (401)", pinGeneric, "");
-    r = await api("/api/stay-session/mint", guest, { body: { stayId: DEMO_STAY, pin: "000000" } });
-    check("locked stay refuses mint (403)", r.status === 403, `status ${r.status}`);
+    r = await api("/api/stay-session/mint", guest, {
+      body: { stayId: DEMO_STAY, pin: "000000" },
+    });
+    check(
+      "locked stay refuses mint (403)",
+      r.status === 403,
+      `status ${r.status}`,
+    );
     r = await api(`/api/stays/${DEMO_STAY}/unlock`, desk, { method: "POST" });
-    check("desk unlocks the PIN locked stay", r.status === 200, `status ${r.status}`);
-    r = await api("/api/stay-session/mint", guest, { body: { stayId: DEMO_STAY, pin: DEMO_PIN } });
-    check("correct PIN mints one stay session", r.status === 200, `status ${r.status}`);
-    r = await api("/api/stay-session/mint", new Jar(), { body: { stayId: DEMO_STAY, pin: DEMO_PIN } });
-    check("second device gets 409 with reuse hint", r.status === 409, `status ${r.status}`);
+    check(
+      "desk unlocks the PIN locked stay",
+      r.status === 200,
+      `status ${r.status}`,
+    );
+    r = await api("/api/stay-session/mint", guest, {
+      body: { stayId: DEMO_STAY, pin: DEMO_PIN },
+    });
+    check(
+      "correct PIN mints one stay session",
+      r.status === 200,
+      `status ${r.status}`,
+    );
+    r = await api("/api/stay-session/mint", new Jar(), {
+      body: { stayId: DEMO_STAY, pin: DEMO_PIN },
+    });
+    check(
+      "second device gets 409 with reuse hint",
+      r.status === 409,
+      `status ${r.status}`,
+    );
     r = await api("/api/stay-session/revoke", guest, { method: "POST" });
     check("guest signs out (revoke)", r.status === 200, `status ${r.status}`);
-    r = await api("/api/stay-session/mint", guest, { body: { stayId: DEMO_STAY, pin: DEMO_PIN } });
-    check("mint works again after sign out", r.status === 200, `status ${r.status}`);
+    r = await api("/api/stay-session/mint", guest, {
+      body: { stayId: DEMO_STAY, pin: DEMO_PIN },
+    });
+    check(
+      "mint works again after sign out",
+      r.status === 200,
+      `status ${r.status}`,
+    );
+
+    // 7b. Compat: a stay still stored as scrypt verifies, then its row
+    // reads bcrypt on the next read (spec 0005 AC-2, AC-3).
+    const compatPin = "654321";
+    const compatSalt = randomBytes(16).toString("hex");
+    const compatStay = await prisma.stay.create({
+      data: {
+        roomNumber: "902",
+        guestName: "Compat Guest",
+        checkIn: new Date(),
+        checkOut: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+        status: "ACTIVE",
+        pinHash: `scrypt$${compatSalt}$${scryptSync(compatPin, compatSalt, 64).toString("hex")}`,
+        failedPinAttempts: 0,
+        pinLocked: false,
+      },
+    });
+    const compatJar = new Jar();
+    r = await api("/api/stay-session/mint", compatJar, {
+      body: { stayId: compatStay.id, pin: compatPin },
+    });
+    const upgraded = await prisma.stay.findUnique({
+      where: { id: compatStay.id },
+    });
+    check(
+      "scrypt row mints (compat verify)",
+      r.status === 200,
+      `status ${r.status}`,
+    );
+    check(
+      "row upgraded to bcrypt after match",
+      upgraded?.pinHash.startsWith("$2b$") ?? false,
+      "",
+    );
+    await prisma.staySession.deleteMany({ where: { stayId: compatStay.id } });
+    await prisma.stay.delete({ where: { id: compatStay.id } });
 
     // 8. Checked out stays cannot mint (AC-6).
-    await prisma.stay.update({ where: { id: DEMO_STAY }, data: { status: "CHECKED_OUT" } });
-    r = await api("/api/stay-session/mint", new Jar(), { body: { stayId: DEMO_STAY, pin: DEMO_PIN } });
-    check("checked out stay cannot mint (403)", r.status === 403, `status ${r.status}`);
-    await prisma.stay.update({ where: { id: DEMO_STAY }, data: { status: "ACTIVE" } });
+    await prisma.stay.update({
+      where: { id: DEMO_STAY },
+      data: { status: "CHECKED_OUT" },
+    });
+    r = await api("/api/stay-session/mint", new Jar(), {
+      body: { stayId: DEMO_STAY, pin: DEMO_PIN },
+    });
+    check(
+      "checked out stay cannot mint (403)",
+      r.status === 403,
+      `status ${r.status}`,
+    );
+    await prisma.stay.update({
+      where: { id: DEMO_STAY },
+      data: { status: "ACTIVE" },
+    });
 
     // 9. Mint limiter answers 429 past budget on a fresh key (AC-5).
     const spamId = `prove-${randomUUID()}`;
     const spam = new Jar();
     let limited = false;
     for (let i = 0; i < 7; i += 1) {
-      const w = await api("/api/stay-session/mint", spam, { body: { stayId: spamId, pin: "000000" } });
+      const w = await api("/api/stay-session/mint", spam, {
+        body: { stayId: spamId, pin: "000000" },
+      });
       if (w.status === 429) limited = true;
     }
     check("mint answers 429 past budget", limited, "");
 
     // 10. Temp reissue rotates the secret (AC-8 recovery path).
-    const kitchenRow = await prisma.user.findUnique({ where: { email: KITCHEN_EMAIL } });
-    r = await api("/api/staff/reissue", admin, { body: { userId: kitchenRow?.id ?? "" } });
+    const kitchenRow = await prisma.user.findUnique({
+      where: { email: KITCHEN_EMAIL },
+    });
+    r = await api("/api/staff/reissue", admin, {
+      body: { userId: kitchenRow?.id ?? "" },
+    });
     const rotated = (r.json as { tempPassword?: string })?.tempPassword ?? "";
-    check("admin reissues a temp secret once", r.status === 200 && rotated.length === 16, `status ${r.status}`);
+    check(
+      "admin reissues a temp secret once",
+      r.status === 200 && rotated.length === 16,
+      `status ${r.status}`,
+    );
 
     console.log(failures === 0 ? "PROVE PASS" : `PROVE FAIL (${failures})`);
   } finally {
@@ -286,6 +502,9 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  console.error("prove crashed:", err instanceof Error ? err.message : String(err));
+  console.error(
+    "prove crashed:",
+    err instanceof Error ? err.message : String(err),
+  );
   process.exit(1);
 });

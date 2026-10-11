@@ -2,9 +2,9 @@
 // column; client claims never decide access. Every sensitive route calls
 // requireStaffRole, and proxy.ts mirrors the same rules at the edge.
 import { headers } from "next/headers";
-import { auth } from "./auth";
-import type { StaffRole } from "./staff";
-import { apiError } from "./api-error";
+import { auth } from "../../lib/auth";
+import type { StaffRole } from "./types";
+import { apiError } from "@/lib/api-error";
 
 export interface StaffUser {
   id: string;
@@ -25,7 +25,12 @@ function toStaffUser(raw: {
   isDisabled?: unknown;
   lockedUntil?: unknown;
 }): StaffUser | null {
-  if (raw.role !== "FRONT_DESK" && raw.role !== "KITCHEN" && raw.role !== "ADMIN") return null;
+  if (
+    raw.role !== "FRONT_DESK" &&
+    raw.role !== "KITCHEN" &&
+    raw.role !== "ADMIN"
+  )
+    return null;
   const lockedUntil = raw.lockedUntil instanceof Date ? raw.lockedUntil : null;
   return {
     id: raw.id,
@@ -68,11 +73,17 @@ export async function requireStaffRole(roles: StaffRole[]): Promise<StaffGate> {
   }
   if (user.mustChangePassword) {
     return {
-      response: apiError("MUST_CHANGE_PASSWORD", "Set a new password before continuing.", 403),
+      response: apiError(
+        "MUST_CHANGE_PASSWORD",
+        "Set a new password before continuing.",
+        403,
+      ),
     };
   }
   if (!roles.includes(user.role)) {
-    return { response: apiError("FORBIDDEN", "Your role cannot use this.", 403) };
+    return {
+      response: apiError("FORBIDDEN", "Your role cannot use this.", 403),
+    };
   }
   return { user };
 }

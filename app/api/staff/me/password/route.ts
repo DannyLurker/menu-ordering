@@ -1,13 +1,15 @@
 // Forced password change (spec 0004, AC-8). Staffers created with a
 // temporary password clear mustChangePassword here before reaching any
-// screen. The temp gate is the only screen this endpoint shares with.
+// screen. The body parses with zod first; rotation lives in the service.
 import type { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { apiError } from "@/lib/api-error";
-import { getStaffUserWithFlags } from "@/lib/staff-auth";
-
-export const NEXT_PASSWORD_MIN = 10;
+import {
+  NEXT_PASSWORD_MIN,
+  StaffError,
+  changeStaffPassword,
+  getStaffUserWithFlags,
+  passwordBody,
+} from "@/features/staff";
 
 export async function POST(request: NextRequest): Promise<Response> {
   const user = await getStaffUserWithFlags();
@@ -18,23 +20,30 @@ export async function POST(request: NextRequest): Promise<Response> {
   try {
     body = await request.json();
   } catch {
-    return apiError("BAD_REQUEST", "Current and new passwords are required.", 400);
+    return apiError(
+      "BAD_REQUEST",
+      "Current and new passwords are required.",
+      400,
+    );
   }
-  const b = (body ?? {}) as { current?: unknown; next?: unknown };
-  if (typeof b.current !== "string" || !b.current || typeof b.next !== "string" || b.next.length < NEXT_PASSWORD_MIN) {
-    return apiError("WEAK_PASSWORD", `The new password must be at least ${NEXT_PASSWORD_MIN} characters.`, 422);
+  const parsed = passwordBody.safeParse(body);
+  if (!parsed.success) {
+    return apiError(
+      "WEAK_PASSWORD",
+      `The new password must be at least ${NEXT_PASSWORD_MIN} characters.`,
+      422,
+    );
   }
   try {
-    await auth.api.changePassword({
-      body: { currentPassword: b.current, newPassword: b.next, revokeOtherSessions: true },
+    await changeStaffPassword({
+      userId: user.id,
+      ...parsed.data,
       headers: request.headers,
     });
-  } catch {
-    return apiError("INVALID_CURRENT", "The current password is wrong.", 401);
+  } catch (err) {
+    if (err instanceof StaffError)
+      return apiError(err.code, err.message, err.status);
+    throw err;
   }
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { mustChangePassword: false, failedSignInAttempts: 0, lockedUntil: null, updatedAt: new Date() },
-  });
   return Response.json({ ok: true });
 }

@@ -2,11 +2,12 @@
 // The wrapper adds what BetterAuth does not own: LRU limits plus the
 // durable Postgres lockout columns (5 wrong passwords cool down 15 min).
 // Wrong credentials always answer generic; nothing names the account.
+// The lockout rules live in the staff service; this file only parses the
+// request, enforces the budgets, and delegates the password check.
 import type { NextRequest } from "next/server";
 import { toNextJsHandler } from "better-auth/next-js";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { apiError, GENERIC_CREDENTIALS_MESSAGE, GENERIC_LOCKED_MESSAGE } from "@/lib/api-error";
+import { auth } from "@/features/staff";
+import { apiError, GENERIC_LOCKED_MESSAGE } from "@/lib/api-error";
 import {
   SIGN_IN_ACCOUNT_MAX,
   SIGN_IN_IP_MAX,
@@ -16,11 +17,14 @@ import {
   signInAccountKey,
   signInIpKey,
 } from "@/lib/rate-limit";
+import {
+  StaffError,
+  checkSignInAllowed,
+  recordSignInFailure,
+  recordSignInSuccess,
+} from "@/features/staff";
 
 const { GET: baseGET, POST: basePOST } = toNextJsHandler(auth);
-
-export const LOCK_THRESHOLD = 5;
-export const LOCK_MINUTES = 15;
 
 export function GET(request: NextRequest): Promise<Response> {
   return baseGET(request);
@@ -33,23 +37,27 @@ export async function POST(request: NextRequest): Promise<Response> {
   let email = "";
   try {
     const body: unknown = await request.clone().json();
-    if (body && typeof body === "object" && "email" in body) email = String((body as { email: unknown }).email ?? "");
+    if (body && typeof body === "object" && "email" in body)
+      email = String((body as { email: unknown }).email ?? "");
   } catch {
     return basePOST(request);
   }
   const key = email.trim().toLowerCase();
   const ip = clientIp(request.headers);
 
-  if ((key && isRateLimited(signInAccountKey(key), SIGN_IN_ACCOUNT_MAX)) || isRateLimited(signInIpKey(ip), SIGN_IN_IP_MAX)) {
+  if (
+    (key && isRateLimited(signInAccountKey(key), SIGN_IN_ACCOUNT_MAX)) ||
+    isRateLimited(signInIpKey(ip), SIGN_IN_IP_MAX)
+  ) {
     return apiError("RATE_LIMITED", GENERIC_LOCKED_MESSAGE, 429);
   }
   if (key) {
-    const user = await prisma.user.findUnique({ where: { email: key } });
-    if (user?.lockedUntil && user.lockedUntil > new Date()) {
-      return apiError("LOCKED", GENERIC_LOCKED_MESSAGE, 423);
-    }
-    if (user?.isDisabled) {
-      return apiError("INVALID_CREDENTIALS", GENERIC_CREDENTIALS_MESSAGE, 401);
+    try {
+      await checkSignInAllowed(key);
+    } catch (err) {
+      if (err instanceof StaffError)
+        return apiError(err.code, err.message, err.status);
+      throw err;
     }
     hitRateLimit(signInAccountKey(key), SIGN_IN_ACCOUNT_MAX);
   }
@@ -58,22 +66,9 @@ export async function POST(request: NextRequest): Promise<Response> {
   const response = await basePOST(request);
   if (key) {
     if (response.ok) {
-      await prisma.user.updateMany({
-        where: { email: key },
-        data: { failedSignInAttempts: 0, lockedUntil: null },
-      });
+      await recordSignInSuccess(key);
     } else if (response.status === 401) {
-      const user = await prisma.user.findUnique({ where: { email: key } });
-      if (user && !user.isDisabled && (!user.lockedUntil || user.lockedUntil <= new Date())) {
-        const attempts = user.failedSignInAttempts + 1;
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            failedSignInAttempts: attempts,
-            lockedUntil: attempts >= LOCK_THRESHOLD ? new Date(Date.now() + LOCK_MINUTES * 60 * 1000) : user.lockedUntil,
-          },
-        });
-      }
+      await recordSignInFailure(key);
     }
   }
   return response;

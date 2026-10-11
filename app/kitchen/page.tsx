@@ -1,7 +1,7 @@
 // Kitchen home (spec 0004). The live board with verify and ETA opens here
 // in Slice 1; this slice owns the gate that keeps desk staff out (AC-2).
 import { redirect } from "next/navigation";
-import { getStaffUser } from "@/lib/staff-auth";
+import { getStaffUser } from "@/features/staff";
 import { CardEmpty } from "@/components/ui/card";
 import { StaffShell } from "@/components/ui/staff-shell";
 

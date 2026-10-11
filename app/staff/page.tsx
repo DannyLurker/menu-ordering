@@ -1,7 +1,7 @@
 // Admin home (spec 0004). Admins manage staff accounts and roles here;
 // menu management joins in Slice 2.
 import { redirect } from "next/navigation";
-import { getStaffUser } from "@/lib/staff-auth";
+import { getStaffUser } from "@/features/staff";
 import { StaffShell } from "@/components/ui/staff-shell";
 import { StaffAdmin } from "./staff-admin";
 

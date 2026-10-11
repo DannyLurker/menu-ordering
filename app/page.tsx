@@ -1,8 +1,8 @@
 // Landing route (spec 0004). The edge gate in proxy.ts already routes
 // signed in staff to their role home; this stays as the direct hit guard.
 import { redirect } from "next/navigation";
-import { getStaffUser } from "@/lib/staff-auth";
-import { ROLE_HOME } from "@/lib/staff";
+import { getStaffUser } from "@/features/staff";
+import { ROLE_HOME } from "@/features/staff";
 
 // Staff identity lives in request headers, so this route renders per
 // request instead of prerendering (Next 16 cache components).

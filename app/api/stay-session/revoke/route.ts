@@ -3,7 +3,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api-error";
-import { STAY_COOKIE, revokeStaySession } from "@/lib/stay-session";
+import { STAY_COOKIE, revokeStaySession } from "@/features/stay-session";
 
 export async function POST(request: NextRequest): Promise<Response> {
   const token = request.cookies.get(STAY_COOKIE)?.value;

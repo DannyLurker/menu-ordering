@@ -1,7 +1,7 @@
 // Front desk home (spec 0004). Desk staff check guests in here in Slice 1;
 // this slice owns the gate plus the PIN unlock action (AC-7 restore path).
 import { redirect } from "next/navigation";
-import { getStaffUser } from "@/lib/staff-auth";
+import { getStaffUser } from "@/features/staff";
 import { CardEmpty } from "@/components/ui/card";
 import { StaffShell } from "@/components/ui/staff-shell";
 import { UnlockForm } from "./unlock-form";

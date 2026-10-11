@@ -1,10 +1,10 @@
 // Edge gates for staff identity (spec 0004). Every staff request passes
-// here first; sensitive routes recheck server side in lib/staff-auth.ts.
+// here first; sensitive routes recheck server side in features/staff/.
 // Unknown roles and expired sessions fall back to sign in, never to data.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
-import { ROLE_HOME, type StaffRole } from "@/lib/staff";
+import { auth } from "@/features/staff";
+import { ROLE_HOME, type StaffRole } from "@/features/staff";
 
 function roleOf(value: unknown): StaffRole | null {
   return value === "FRONT_DESK" || value === "KITCHEN" || value === "ADMIN" ? value : null;

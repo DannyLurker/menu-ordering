@@ -13,6 +13,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 2. Every feature ships with a feature workflow. The workflow shows the steps, the checks, and the status changes in plain words, based on the flowcharts you provided. `/architect` draws the planned workflow in the spec, `/develop` updates it to match what was built.
 3. Only use .agents folder for agent skills and agent configuration. Never install to global or other agent folders.
 4. Every features ships with a step by step how does the feature work. Etc: "Login Feature", 1. User input their identity and submit it, 2. System finds it on database and validate its password, and so on.
+5. Every time an outside library exists that is peer reviewed and validated for a job at hand, surface it as an option with a recommendation and let you choose before hand rolling the same thing. Never silently hand roll what a vetted library already does.
 
 ## Agreed stack and design (your choices, recorded)
 
@@ -21,6 +22,65 @@ Agreed stack for V1.1: Nextjs with TS, Prisma 7 with Postgresql, BetterAuth, soc
 Design direction: use the Biz Hotel Batam logo as the color reference (strong red on white, clean type). Keep every screen modern and clean. Full design tokens live in the design system spec.
 
 Language: English plus Indonesian on guest and staff screens.
+
+Hashing direction (your choice, decided in spec 0005): bcryptjs does the app side secret hashing instead of the hand rolled scrypt in `features/stay-session/pin.ts`. Staff passwords stay with BetterAuth built in hashing. Constraint: rows already stored as scrypt keep verifying through lazy rehash on first match. Build it with `/develop` whenever ready; per working agreement 1 the bcryptjs download still needs your yes at build time.
+
+## Folder structure (your guideline, recorded)
+
+New feature code follows four layers, adapted from your example to this repo root layout (no `src/` move; `app/` stays the router). Route handlers stay thin pass throughs, business logic lives in its feature slice, shared code stays generic.
+
+```text
+my-app/
+├── app/                         # 1. Routing layer (HTTP pass throughs only)
+│   ├── (auth)/
+│   ├── (guest)/
+│   ├── api/                     # Route handlers / controllers
+│   │   └── stay/
+│   │       └── session/
+│   │           └── route.ts
+│   ├── layout.tsx
+│   └── page.tsx
+│
+├── features/                    # 2. Domain slices (orthogonal units)
+│   ├── stay-session/            # Feature A
+│   │   ├── components/          # UI components (pin-form.tsx)
+│   │   ├── hooks/               # React hooks (use-stay-session.ts)
+│   │   ├── repositories/        # Data access (Prisma / DB queries)
+│   │   ├── services/            # Pure business logic (uses repositories)
+│   │   ├── types/               # Feature types and schemas
+│   │   └── index.ts             # Public API boundary for this feature
+│   │
+│   └── orders/                  # Feature B (isolated from Feature A)
+│       ├── components/
+│       ├── repositories/        # Order and menu item DB queries
+│       ├── services/            # Order calculation and validation
+│       └── index.ts
+│
+├── components/ui/               # 3a. Shared generic UI (design system parts)
+├── lib/                         # 3b. Shared cross cutting code
+│   ├── db.ts                    # Global instances (Prisma client, BetterAuth)
+│   └── utils.ts
+│
+├── prisma/                      # Schema, migrations, seed
+├── scripts/                     # Prove and ops scripts (prove-*.ts)
+│   ├── prove-auth-and-roles.ts
+│   └── prove-data-model.ts
+│
+├── tsconfig.json
+└── package.json
+```
+
+Layer rules every slice follows:
+
+1. `app/` routes and route handlers only parse input, call one feature service, and shape the response. No SQL and no business rules here.
+2. `features/<name>/` owns its domain end to end. Services hold the rules, repositories hold the queries, and only `index.ts` is imported from outside the slice.
+3. `components/ui/` plus `lib/` stay generic. Nothing domain specific moves in; a second feature needing it is the signal to promote.
+4. Tests live beside the source they cover (`*.test.ts`, vitest), not in a separate tests tree. Prove scripts live in `scripts/`.
+5. The Prisma instance is passed down, never imported deep inside. Route handlers take it from `lib/db.ts` and hand it to services, services hand it to repositories. Reason: tests can hand a mock instance instead, so service and repository tests run with no database.
+6. Zod validates every request body and query string at the route boundary. Handlers parse with a schema first and answer 400 or 422 on failure; services receive typed values and never revalidate shapes.
+7. Within each domain slice under src/features/[feature-name]/, files MUST follow a dot-delimited layer suffix naming convention matching the feature name: [feature-name].layer.ts
+
+Grandfather note: the staff and stay session slices already moved out of `lib/` into `features/`, but they still import the shared Prisma instance directly. They adopt rules 5 and 6 the next time either slice is touched; new code follows all six rules now, and `/sync` records each move.
 
 ## At a glance
 
@@ -41,6 +101,8 @@ Language: English plus Indonesian on guest and staff screens.
 | 13  | Order history and stay folio view      | Slice 3    | planned     |
 | 14  | Localization EN plus ID                | Slice 3    | planned     |
 | 15  | Xendit external payment                | Deferred   | planned     |
+| 16  | PIN hashing on bcryptjs                | Foundation | in-progress |
+| 17  | Staff passwords on bcryptjs API        | Foundation | in-progress |
 
 ## Foundations
 
@@ -92,16 +154,16 @@ Staff access by role (front desk, kitchen, admin) plus guest identity tied to st
 **Done when:** each role can reach only its own screens, and guest identity resolves to one stay.
 
 - [x] Design it (spec): `/architect auth and roles`
-      Spec [0004](../specs/0004-auth-and-roles/index.md) · Code in `prisma/schema.prisma`, `prisma/migrations/20261011013208_auth_and_roles/`, `lib/auth.ts`, `lib/auth-client.ts`, `lib/staff.ts`, `lib/staff-auth.ts`, `lib/stay-session.ts`, `lib/rate-limit.ts`, `proxy.ts`, `app/sign-in/`, `app/change-password/`, `app/stays/`, `app/kitchen/`, `app/staff/`, `app/menu/`, `app/api/auth/`, `app/api/stay-session/`, `app/api/staff/`, `app/api/stays/`, `prisma/seed.ts`, `scripts/prove-auth-and-roles.ts`
+      Spec [0004](../specs/0004-auth-and-roles/index.md) · Code in `prisma/schema.prisma`, `prisma/migrations/20261011013208_auth_and_roles/`, `features/staff/`, `features/stay-session/`, `lib/` (db, utils, rate limit, api errors), `proxy.ts`, `app/sign-in/`, `app/change-password/`, `app/stays/`, `app/kitchen/`, `app/staff/`, `app/menu/`, `app/api/auth/`, `app/api/stay-session/`, `app/api/staff/`, `app/api/stays/`, `prisma/seed.ts`, `scripts/prove-auth-and-roles.ts`
 - [x] Build it: `/develop auth and roles`
   - [x] Migration plus BetterAuth wiring with additive User columns and StaySession (AC-1, AC-2, AC-3, AC-5)
   - [x] Staff sign in plus temp change plus edge gates per role (AC-1, AC-2, AC-4, AC-8)
   - [x] Stay mint plus revoke plus LRU limits and lockout (AC-3, AC-4, AC-5, AC-6, AC-7)
   - [x] Admin create plus seed plus unlock plus prove walk (AC-2, AC-8, AC-1 to AC-8)
-- [ ] Verify it: `/check verify auth and roles`
-- [ ] Test it: `/test auth and roles`
-- [ ] Review it (fresh model): `/check review auth and roles`
-- [ ] Document it: `/document auth and roles`
+- [x] Verify it: `/check verify auth and roles`
+- [x] Test it: `/test auth and roles`
+- [x] Review it (fresh model): `/check review auth and roles`
+- [x] Document it: `/document auth and roles`
 
 ### 5. Real time foundation and rate limiting · needs a decision
 
@@ -109,6 +171,37 @@ Shared live channel plan plus free rate limiting with LRU cache, so order events
 **Done when:** order created plus status changed events reach the right room live, and PIN retries are limited and logged.
 
 - [ ] Design it (spec): `/architect real time foundation and rate limiting`
+
+### 16. PIN hashing on bcryptjs · in-progress
+
+Guest PINs hash with the peer reviewed bcryptjs library instead of hand rolled scrypt, with old scrypt rows upgrading lazily on first successful verify.
+**Done when:** new PINs store as bcrypt rows, old scrypt rows still verify and then upgrade, and the auth prove walk passes unchanged.
+
+- [x] Design it (spec): `/architect hashing: bcryptjs for PINs with scrypt compat`
+      Spec [0005](../specs/0005-pin-hashing-bcrypt/index.md) · Code in `features/stay-session/pin.ts`, `features/stay-session/pin.test.ts`, `features/stay-session/services/stay-session-service.ts`, `features/stay-session/repositories/stay-session-repository.ts`, `prisma/seed.ts`, `scripts/prove-auth-and-roles.ts`, `scripts/prove-data-model.ts`
+- [x] Build it: `/develop pin hashing on bcryptjs`
+  - [x] Hasher plus dual verify on bcryptjs (AC-1, AC-2, AC-5, AC-6)
+  - [x] Lazy rehash plus callers plus gates (AC-3, AC-4)
+- [x] Verify it: `/check verify pin hashing on bcryptjs`
+- [x] Test it: `/test pin hashing on bcryptjs`
+- [x] Review it (fresh model): `/check review pin hashing on bcryptjs`
+- [x] Document it: `/document pin hashing on bcryptjs`
+
+### 17. Staff passwords on bcryptjs API · in-progress
+
+Staff password hashing moves to bcryptjs inside the BetterAuth config, and every account write goes through the BetterAuth API seams instead of direct database calls.
+**Done when:** created and reissued staff sign in against bcrypt rows, and the auth prove walk passes unchanged.
+
+- [x] Design it (spec): `/architect staff password hashing: bcryptjs with BetterAuth verify compat`
+      Spec [0006](../specs/0006-staff-passwords-bcrypt-api/index.md) · Code in `lib/auth.ts`, `features/staff/services/staff-service.ts`, `features/staff/repositories/staff-repository.ts`, `prisma/seed.ts`, `scripts/prove-auth-and-roles.ts`
+- [x] Build it: `/develop staff passwords on bcryptjs API`
+  - [x] Bcrypt hasher in BetterAuth config (AC-1)
+  - [x] Creation plus reissue plus seed through seams, direct writes retired (AC-1, AC-2, AC-3, AC-5)
+  - [x] Gates: typecheck plus lint plus build plus prove unchanged (AC-4)
+- [x] Verify it: `/check verify staff passwords on bcryptjs API`
+- [x] Test it: `/test staff passwords on bcryptjs API`
+- [x] Review it (fresh model): `/check review staff passwords on bcryptjs API`
+- [x] Document it: `/document staff passwords on bcryptjs API`
 
 ## Slice 1: Core order loop (the walking skeleton)
 

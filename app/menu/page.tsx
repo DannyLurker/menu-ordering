@@ -1,7 +1,7 @@
 // Menu home (spec 0004). Staff menu management opens here in Slice 2;
 // this slice owns the admin only gate (AC-2).
 import { redirect } from "next/navigation";
-import { getStaffUser } from "@/lib/staff-auth";
+import { getStaffUser } from "@/features/staff";
 import { CardEmpty } from "@/components/ui/card";
 import { StaffShell } from "@/components/ui/staff-shell";
 
