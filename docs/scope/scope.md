@@ -91,9 +91,9 @@ Grandfather note: the staff and stay session slices already moved out of `lib/` 
 | 3   | Design system and UI foundation        | Foundation | done        |
 | 4   | Auth and roles                         | Foundation | done        |
 | 5   | Real time foundation and rate limiting | Foundation | done        |
-| 6   | Stay and guest check in                | Slice 1    | done    |
-| 7   | Guest order with PIN verify            | Slice 1    | planned     |
-| 8   | Kitchen live board with verify and ETA | Slice 1    | planned     |
+| 6   | Stay and guest check in                | Slice 1    | done        |
+| 7   | Guest order with PIN verify            | Slice 1    | in-progress |
+| 8   | Kitchen live board with verify and ETA | Slice 1    | in-progress |
 | 9   | Folio and room charge                  | Slice 2    | planned     |
 | 10  | Pay now record                         | Slice 2    | planned     |
 | 11  | Guest live order status                | Slice 2    | planned     |
@@ -232,19 +232,42 @@ Front desk creates the guest account at check in. Guest sets the secret 6 digit 
 - [x] Review it (fresh model): `/check review stay and guest check in`
 - [x] Document it: `/document stay and guest check in`
 
-### 7. Guest order with PIN verify · needs a decision
+### 7. Guest order with PIN verify · in-progress
 
 Guest picks items and places an order, then enters the PIN. Workflow: create order draft, check stay dates, verify PIN, reject and ask again on mismatch, lock with call staff message when the rate limit trips.
 **Done when:** a checked in guest can order with a correct PIN, a wrong PIN asks again, and repeated misses lock with a call staff message.
 
-- [ ] Design it (spec): `/architect guest order with PIN verify`
+- [x] Design it (spec): `/architect guest order with PIN verify`
+      Spec [0009](../specs/0009-guest-order-pin-verify/index.md)
+- [x] Build it: `/develop guest order with PIN verify`
+      Code in `features/orders/`, `app/api/orders/`, `app/guest/menu/`, `proxy.ts`, `scripts/prove-guest-order.ts`
+  - [x] Order calculation and validation schemas (AC-1, AC-3, AC-9)
+  - [x] Order service, atomic persistence, and PIN verification logic (AC-2, AC-3, AC-4, AC-5, AC-6, AC-10)
+  - [x] API routes, deduplication, rate limiting, and gateway proxy updates (AC-4, AC-7, AC-8, AC-10, AC-11)
+  - [x] Guest menu browsing, responsive cart drawer, and bilingual labels (AC-1, AC-9)
+  - [x] PIN checkout dialog, attempts feedback, lockout handling, and order summary (AC-2, AC-4, AC-5, AC-6)
+- [x] Verify it: `/check verify guest order with PIN verify`
+- [ ] Test it: `/test guest order with PIN verify`
+- [ ] Review it (fresh model): `/check review guest order with PIN verify`
+- [ ] Document it: `/document guest order with PIN verify`
 
-### 8. Kitchen live board with verify and ETA · needs a decision
+### 8. Kitchen live board with verify and ETA · in-progress
 
 New orders appear at once on the kitchen board. Kitchen verifies PENDING into PREPARING and enters estimated minutes. Full status set: PENDING, PREPARING, READY, SERVED, GUEST_CANCELLED, KITCHEN_CANCELLED. Workflow: notify, show, verify with ETA, advance status.
 **Done when:** a new order shows live without refresh, verify sets PREPARING with ETA, and every later status change persists.
 
-- [ ] Design it (spec): `/architect kitchen live board with verify and ETA`
+- [x] Design it (spec): `/architect kitchen live board with verify and ETA`
+      Spec [0010](../specs/0010-kitchen-live-board/index.md)
+- [ ] Build it: `/develop kitchen live board with verify and ETA`
+  - [ ] Schema migration plus kitchen order service and state machine (AC-3, AC-4, AC-5, AC-6, AC-7, AC-13)
+  - [ ] Kitchen REST API, auth, and rate limits (AC-2, AC-11, AC-14)
+  - [ ] Live board UI, desk read only gates, and realtime subscribe (AC-1, AC-8, AC-10, AC-12, AC-14)
+  - [ ] Verify, ETA, ready, served, and cancel flows on the board (AC-3, AC-4, AC-5, AC-6, AC-7, AC-13)
+  - [ ] Countdown urgency, chime, and reconnect toasts (AC-8, AC-9, AC-10)
+- [ ] Verify it: `/check verify kitchen live board with verify and ETA`
+- [ ] Test it: `/test kitchen live board with verify and ETA`
+- [ ] Review it (fresh model): `/check review kitchen live board with verify and ETA`
+- [ ] Document it: `/document kitchen live board with verify and ETA`
 
 ## Slice 2: Folio and payment record
 

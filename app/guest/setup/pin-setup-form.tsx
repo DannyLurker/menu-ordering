@@ -3,6 +3,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -59,7 +61,7 @@ export function PinSetupForm({ initialStayId }: { initialStayId: string }) {
         return;
       }
       setDone(true);
-      setMessage("PIN is set. You can now sign in to order from your room. / PIN sudah diatur. Anda kini dapat masuk untuk memesan.");
+      setMessage("PIN is set. You are now signed in and can order from your room. / PIN sudah diatur. Anda kini sudah masuk dan dapat memesan.");
     } catch {
       setFailed(true);
       setMessage("Could not set the PIN. Check your connection. / Periksa koneksi Anda.");
@@ -79,6 +81,14 @@ export function PinSetupForm({ initialStayId }: { initialStayId: string }) {
             {message}
           </p>
         </CardContent>
+        <CardFooter className="p-0">
+          <Button asChild className="w-full sm:w-auto">
+            <Link href="/guest/menu">
+              Order from your room · Pesan dari kamar
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </CardFooter>
       </Card>
     );
   }

@@ -28,6 +28,8 @@ export interface RealtimeCallbacks {
   onResync?: () => void;
   /** Join denied with a stable code plus retry seconds. */
   onJoinDenied?: (info: { code: string; retryAfterSec: number }) => void;
+  /** Live connection state changes (connected plus room joined). */
+  onStatusChange?: (connected: boolean) => void;
 }
 
 export interface RealtimeHandle {
@@ -67,13 +69,18 @@ export function createRealtimeClient(
     const event = joinEvent(kind);
     socket.emit(event, (result: JoinResult) => {
       if (!result.ok) {
+        callbacks.onStatusChange?.(false);
         callbacks.onJoinDenied?.({ code: result.code, retryAfterSec: result.retryAfterSec });
+      } else {
+        callbacks.onStatusChange?.(true);
       }
     });
   }
 
   function onFocus(): void {
     if (!socket?.connected || !kind) return;
+    const now = Date.now();
+    if (now - lastRefetch < FOCUS_DEBOUNCE_MS) return;
     join();
     refetch("focus");
   }
@@ -96,9 +103,16 @@ export function createRealtimeClient(
         socket.on(ORDER_STATUS_CHANGED, (payload: OrderEventPayload) =>
           callbacks.onOrderEvent(ORDER_STATUS_CHANGED, payload),
         );
-        socket.on(JOIN_DENIED, (info: { code: string; retryAfterSec: number }) =>
-          callbacks.onJoinDenied?.(info),
-        );
+        socket.on(JOIN_DENIED, (info: { code: string; retryAfterSec: number }) => {
+          callbacks.onStatusChange?.(false);
+          callbacks.onJoinDenied?.(info);
+        });
+        socket.on("disconnect", () => {
+          callbacks.onStatusChange?.(false);
+        });
+        socket.on("connect_error", () => {
+          callbacks.onStatusChange?.(false);
+        });
         // `connect` fires on every (re)connection, `reconnect` only after
         // a drop, so joining here covers first load plus every heal with
         // one call site. The screen loads REST truth itself on first

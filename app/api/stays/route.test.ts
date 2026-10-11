@@ -95,7 +95,7 @@ describe("POST /api/stays", () => {
         checkOut: new Date("2026-10-15T00:00:00.000Z"),
         createdAt: new Date("2026-10-11T01:00:00.000Z"),
       },
-    ]);
+    ] as never);
 
     const res = await POST(
       createRequest({ roomNumber: "v202", guestName: "Clash Guest", checkIn: "2026-10-15", checkOut: "2026-10-17" }) as never,

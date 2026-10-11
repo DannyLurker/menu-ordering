@@ -46,12 +46,14 @@ function apiDenied(code: string, message: string, status: number): NextResponse 
 
 const ADMIN_API = ["/api/staff/reissue"];
 const DESK_API = ["/api/stays/"];
+const KITCHEN_API = ["/api/kitchen/"];
 
 function apiRole(pathname: string): StaffRole[] | "any" {
   if (pathname === "/api/staff" || ADMIN_API.some((p) => pathname.startsWith(p))) return ["ADMIN"];
   if (pathname.startsWith("/api/staff/") && !pathname.startsWith("/api/staff/me")) return ["ADMIN"];
   if (pathname.startsWith("/api/staff/me")) return "any";
   if (DESK_API.some((p) => pathname.startsWith(p))) return ["FRONT_DESK", "ADMIN"];
+  if (KITCHEN_API.some((p) => pathname.startsWith(p))) return ["KITCHEN", "ADMIN", "FRONT_DESK"];
   return "any";
 }
 
@@ -64,7 +66,8 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   if (
     pathname.startsWith("/api/auth/") ||
     pathname.startsWith("/api/stay-session/") ||
-    pathname === "/api/stays/pin-setup"
+    pathname === "/api/stays/pin-setup" ||
+    pathname.startsWith("/api/orders")
   ) {
     return NextResponse.next();
   }
@@ -111,7 +114,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   if (pathname.startsWith("/kitchen")) {
     if (!valid) return redirect(request, "/sign-in");
     if (user.mustChangePassword) return redirect(request, "/change-password");
-    if (!needs(["KITCHEN", "ADMIN"])) return redirect(request, home(user.role ?? "FRONT_DESK"));
+    if (!needs(["KITCHEN", "ADMIN", "FRONT_DESK"])) return redirect(request, home(user.role ?? "FRONT_DESK"));
     return NextResponse.next();
   }
   if (pathname.startsWith("/staff") || pathname.startsWith("/menu")) {

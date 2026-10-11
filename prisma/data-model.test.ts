@@ -238,7 +238,7 @@ describe("check bound guards", () => {
     ).rejects.toThrow();
   });
 
-  it("rejects an ETA outside 5 to 120 while null stays allowed, covers AC-7", async () => {
+  it("rejects an ETA outside 1 to 120 while null stays allowed, covers AC-7", async () => {
     const { checkIn, checkOut } = stayWindow();
     const stay = await prisma.stay.create({
       data: { roomNumber: "931", guestName: "EtaBounds", checkIn, checkOut, pinHash: "scrypt$t$t" },
@@ -247,7 +247,7 @@ describe("check bound guards", () => {
       data: { stayId: stay.id, items: { create: { menuItemId: ITEM_ID, qty: 1, unitPrice: 75000 } } },
     });
 
-    await expect(prisma.order.update({ where: { id: order.id }, data: { etaMinutes: 4 } })).rejects.toThrow();
+    await expect(prisma.order.update({ where: { id: order.id }, data: { etaMinutes: 0 } })).rejects.toThrow();
     await expect(prisma.order.update({ where: { id: order.id }, data: { etaMinutes: 121 } })).rejects.toThrow();
     const kept = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
     expect(kept.etaMinutes).toBeNull();

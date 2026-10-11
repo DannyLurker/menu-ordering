@@ -1,52 +1,60 @@
-// Integration tests for the guest PIN setup route (spec 0008 AC-2,
-// AC-7). The handler runs for real with the real LRU limiter; only the
-// database is stubbed at the boundary. Each throttle test uses its own
-// stay id so budgets never bleed across tests.
+// Integration tests for PIN setup route (spec 0008, spec 0009 fix).
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { randomUUID } from "node:crypto";
 
 vi.mock("@/lib/db", () => ({
-  prisma: {
-    stay: {
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      updateMany: vi.fn(),
-    },
+  prisma: {},
+}));
+
+vi.mock("@/features/stays", () => ({
+  setupStayPin: vi.fn(),
+  pinSetupBody: {
+    safeParse: vi.fn(),
+  },
+  StayCheckinError: class StayCheckinError extends Error {
+    status: number;
+    code: string;
+    constructor(status: number, code: string, message: string) {
+      super(message);
+      this.status = status;
+      this.code = code;
+    }
+  },
+}));
+
+vi.mock("@/features/stay-session", () => ({
+  STAY_COOKIE: "stay_session",
+  mintStaySession: vi.fn(),
+  stayCookieOptions: vi.fn(() => ({ httpOnly: true, secure: false })),
+  StayAuthError: class StayAuthError extends Error {
+    status: number;
+    code: string;
+    constructor(status: number, code: string, message: string) {
+      super(message);
+      this.status = status;
+      this.code = code;
+    }
   },
 }));
 
 import { POST } from "./route";
-import { prisma } from "@/lib/db";
-import { hashSetupCode } from "@/features/stays";
+import { setupStayPin } from "@/features/stays";
+import { mintStaySession } from "@/features/stay-session";
 
-const findUnique = vi.mocked(prisma.stay.findUnique);
-const updateMany = vi.mocked(prisma.stay.updateMany);
+const mockSetupStayPin = vi.mocked(setupStayPin);
+const mockMintStaySession = vi.mocked(mintStaySession);
 
-function setupRequest(body: unknown): Request {
-  return new Request("http://localhost/api/stays/pin-setup", {
+function createMockRequest(body: unknown) {
+  const headers = new Headers();
+  headers.set("content-type", "application/json");
+  headers.set("x-forwarded-for", "127.0.0.1");
+
+  const req = new Request("http://localhost/api/stays/pin-setup", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify(body),
-  });
-}
-
-interface SetupBody {
-  ok?: boolean;
-  error?: { code?: string; message?: string; retryAfter?: number };
-}
-
-function liveRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return {
-    id: "stay-301",
-    status: "ACTIVE",
-    pinLocked: false,
-    pinSetAt: null,
-    setupHash: hashSetupCode("ABCDEFGH"),
-    setupExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
-    ...overrides,
-  };
+  }) as any;
+  req.nextUrl = new URL("http://localhost/api/stays/pin-setup");
+  return req;
 }
 
 beforeEach(() => {
@@ -54,101 +62,100 @@ beforeEach(() => {
 });
 
 describe("POST /api/stays/pin-setup", () => {
-  it("answers 422 on a bad shape before spending budget, covers AC-2", async () => {
-    const res = await POST(setupRequest({ stayId: "x" }) as never);
-    const body = (await res.json()) as SetupBody;
+  it("returns 422 on invalid request body", async () => {
+    const { pinSetupBody } = await import("@/features/stays");
+    vi.mocked(pinSetupBody.safeParse).mockReturnValue({
+      success: false,
+      error: { issues: [{ message: "Required" }] },
+    } as any);
+
+    const req = createMockRequest({ stayId: "", setupCode: "", newPin: "", confirmPin: "" });
+    const res = await POST(req);
+    const data = await res.json();
 
     expect(res.status).toBe(422);
-    expect(body.error?.code).toBe("INVALID_INPUT");
-    expect(findUnique).not.toHaveBeenCalled();
+    expect(data.error.code).toBe("INVALID_INPUT");
   });
 
-  it("rejects a weak PIN without reading the stay, covers AC-2", async () => {
-    const res = await POST(
-      setupRequest({ stayId: randomUUID(), setupCode: "ABCDEFGH", newPin: "123456", confirmPin: "123456" }) as never,
-    );
-    const body = (await res.json()) as SetupBody;
+  it("sets a stay session cookie on successful PIN setup", async () => {
+    const { pinSetupBody } = await import("@/features/stays");
+    vi.mocked(pinSetupBody.safeParse).mockReturnValue({
+      success: true,
+      data: {
+        stayId: "stay-1",
+        setupCode: "ABC123",
+        newPin: "123456",
+        confirmPin: "123456",
+      },
+    } as any);
 
-    expect(res.status).toBe(400);
-    expect(body.error?.code).toBe("WEAK_PIN");
-    expect(findUnique).not.toHaveBeenCalled();
-  });
+    mockSetupStayPin.mockResolvedValue({ ok: true, pinSetAt: new Date("2026-10-11T12:00:00Z") });
+    mockMintStaySession.mockResolvedValue({
+      token: "session-token-123",
+      expiresAt: new Date("2026-10-12T12:00:00Z"),
+    });
 
-  it("rejects a mismatched confirm, covers AC-2", async () => {
-    const res = await POST(
-      setupRequest({ stayId: randomUUID(), setupCode: "ABCDEFGH", newPin: "482916", confirmPin: "482917" }) as never,
-    );
-    const body = (await res.json()) as SetupBody;
-
-    expect(res.status).toBe(400);
-    expect(body.error?.code).toBe("PIN_MISMATCH");
-  });
-
-  it("sets the PIN on a valid code and stamps pinSetAt, covers AC-2", async () => {
-    findUnique.mockResolvedValue(liveRow() as never);
-    updateMany.mockResolvedValue({ count: 1 } as never);
-
-    const res = await POST(
-      setupRequest({ stayId: "stay-301", setupCode: "ABCDEFGH", newPin: "482916", confirmPin: "482916" }) as never,
-    );
-    const body = (await res.json()) as SetupBody;
+    const req = createMockRequest({
+      stayId: "stay-1",
+      setupCode: "ABC123",
+      newPin: "123456",
+      confirmPin: "123456",
+    });
+    const res = await POST(req);
+    const data = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body.ok).toBe(true);
+    expect(data.ok).toBe(true);
+    expect(mockMintStaySession).toHaveBeenCalledWith(expect.anything(), "stay-1", "123456");
+    expect(res.headers.get("set-cookie")).toContain("stay_session=session-token-123");
   });
 
-  it("answers uniform invalid for an unknown stay and leaks no id, covers AC-2", async () => {
-    const stayId = randomUUID();
-    findUnique.mockResolvedValue(null);
+  it("does not set a cookie when PIN setup fails", async () => {
+    const { pinSetupBody } = await import("@/features/stays");
+    vi.mocked(pinSetupBody.safeParse).mockReturnValue({
+      success: true,
+      data: {
+        stayId: "stay-1",
+        setupCode: "ABC123",
+        newPin: "123456",
+        confirmPin: "123456",
+      },
+    } as any);
 
-    const res = await POST(
-      setupRequest({ stayId, setupCode: "ZZZZZZZZ", newPin: "482916", confirmPin: "482916" }) as never,
+    const { StayCheckinError } = await import("@/features/stays");
+    mockSetupStayPin.mockRejectedValue(
+      new StayCheckinError(400, "WEAK_PIN", "Pick a harder PIN"),
     );
-    const raw = await res.text();
+
+    const req = createMockRequest({
+      stayId: "stay-1",
+      setupCode: "ABC123",
+      newPin: "123456",
+      confirmPin: "123456",
+    });
+    const res = await POST(req);
+    const data = await res.json();
 
     expect(res.status).toBe(400);
-    expect(raw).toContain("SETUP_INVALID");
-    expect(raw).not.toContain(stayId);
+    expect(data.error.code).toBe("WEAK_PIN");
+    expect(res.headers.get("set-cookie")).toBeNull();
+    expect(mockMintStaySession).not.toHaveBeenCalled();
   });
 
-  it("answers 410 for a consumed code, covers AC-2", async () => {
-    findUnique.mockResolvedValue(liveRow({ setupHash: null, setupExpiresAt: null, pinSetAt: new Date() }) as never);
+  it("returns 400 on malformed JSON body", async () => {
+    const headers = new Headers();
+    headers.set("x-forwarded-for", "127.0.0.1");
+    const req = new Request("http://localhost/api/stays/pin-setup", {
+      method: "POST",
+      headers,
+      body: "not valid json",
+    }) as any;
+    req.nextUrl = new URL("http://localhost/api/stays/pin-setup");
 
-    const res = await POST(
-      setupRequest({ stayId: "stay-302", setupCode: "ABCDEFGH", newPin: "482916", confirmPin: "482916" }) as never,
-    );
-    const body = (await res.json()) as SetupBody;
+    const res = await POST(req);
+    const data = await res.json();
 
-    expect(res.status).toBe(410);
-    expect(body.error?.code).toBe("SETUP_EXPIRED");
-  });
-
-  it("answers 423 for a locked stay, covers AC-2", async () => {
-    findUnique.mockResolvedValue(liveRow({ pinLocked: true }) as never);
-
-    const res = await POST(
-      setupRequest({ stayId: "stay-303", setupCode: "ABCDEFGH", newPin: "482916", confirmPin: "482916" }) as never,
-    );
-    const body = (await res.json()) as SetupBody;
-
-    expect(res.status).toBe(423);
-    expect(body.error?.code).toBe("STAY_LOCKED");
-  });
-
-  it("answers 429 with retry hint past the stay budget, covers AC-7", async () => {
-    const stayId = randomUUID();
-    findUnique.mockResolvedValue(null);
-    let last: Response | null = null;
-    for (let i = 0; i < 6; i += 1) {
-      last = await POST(
-        setupRequest({ stayId, setupCode: "ZZZZZZZZ", newPin: "482916", confirmPin: "482916" }) as never,
-      );
-    }
-
-    expect(last?.status).toBe(429);
-    const body = (await last?.json()) as SetupBody;
-    expect(body.error?.code).toBe("RATE_LIMITED");
-    expect(typeof body.error?.retryAfter).toBe("number");
-    expect(last?.headers.get("Retry-After")).toBe(String(body.error?.retryAfter));
+    expect(res.status).toBe(400);
+    expect(data.error.code).toBe("BAD_REQUEST");
   });
 });

@@ -91,4 +91,26 @@ describe("createRealtimeClient connect", () => {
     ack({ ok: false, code: "RATE_LIMITED", retryAfterSec: 30 });
     expect(onJoinDenied).toHaveBeenCalledWith({ code: "RATE_LIMITED", retryAfterSec: 30 });
   });
+
+  it("notifies onStatusChange on join ack and disconnect", () => {
+    const sock = fakeSocket();
+    vi.mocked(io).mockReturnValue(sock as never);
+    const onStatusChange = vi.fn();
+    const client = createRealtimeClient({
+      onOrderEvent: () => undefined,
+      refetch: () => undefined,
+      onStatusChange,
+    });
+
+    client.connect({ kitchen: true });
+    fire(sock, "connect");
+
+    const ack = sock.emit.mock.calls[0][1] as (result: unknown) => void;
+    ack({ ok: true, room: "kitchen:board" });
+    expect(onStatusChange).toHaveBeenCalledWith(true);
+
+    fire(sock, "disconnect");
+    expect(onStatusChange).toHaveBeenCalledWith(false);
+  });
 });
+

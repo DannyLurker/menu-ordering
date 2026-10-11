@@ -6,13 +6,15 @@ import { RATE_LIMIT_CODE, THROTTLE_MESSAGE } from "./realtime";
 
 export const RATE_WINDOW_MS = 15 * 60 * 1000;
 export const SIGN_IN_ACCOUNT_MAX = 5;
-export const SIGN_IN_IP_MAX = 20;
+export const SIGN_IN_IP_MAX = 50;
 export const MINT_STAY_MAX = 5;
 export const MINT_IP_MAX = 20;
 export const ORDER_STAY_MAX = 20;
 export const ORDER_IP_MAX = 60;
 export const PINSETUP_STAY_MAX = 5;
 export const PINSETUP_IP_MAX = 20;
+export const KITCHEN_STAFF_MAX = 20;
+export const KITCHEN_IP_MAX = 120;
 export const RATE_HOUR_MS = 60 * 60 * 1000;
 export const REISSUE_HOUR_MAX = 20;
 
@@ -83,6 +85,14 @@ export function pinSetupIpKey(ip: string): string {
 
 export function reissueDeskKey(stayId: string): string {
   return `reissue:stay:${stayId}`;
+}
+
+export function kitchenStaffKey(userId: string): string {
+  return `kitchen:staff:${userId}`;
+}
+
+export function kitchenIpKey(ip: string): string {
+  return `kitchen:ip:${ip}`;
 }
 
 export function clientIp(headers: Headers): string {

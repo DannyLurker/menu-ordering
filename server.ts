@@ -34,6 +34,7 @@ import {
   mintIpKey,
   mintStayKey,
   rateLimitRetryAfter,
+  resetRateLimit,
   signInAccountKey,
   signInIpKey,
 } from "./lib/rate-limit";
@@ -118,12 +119,12 @@ async function resolveStaff(cookieHeader: string): Promise<StaffJoin | null> {
     });
     const raw = session?.user as
       | {
-          email?: unknown;
-          role?: unknown;
-          mustChangePassword?: unknown;
-          isDisabled?: unknown;
-          lockedUntil?: unknown;
-        }
+        email?: unknown;
+        role?: unknown;
+        mustChangePassword?: unknown;
+        isDisabled?: unknown;
+        lockedUntil?: unknown;
+      }
       | undefined;
     if (!raw || typeof raw.email !== "string") return null;
     const role = roleOf(raw.role);
@@ -155,13 +156,17 @@ app.prepare().then(() => {
     const jar = parseCookies(rawCookie || undefined);
 
     socket.on(JOIN_STAY, async (ack: unknown) => {
+      const stay = await resolveStay(jar[STAY_COOKIE]);
+      if (stay && socket.rooms.has(stayRoom(stay.stayId))) {
+        answer(socket, ack, { ok: true, room: stayRoom(stay.stayId) });
+        return;
+      }
       if (isRateLimited(mintIpKey(ip), MINT_IP_MAX)) {
         console.log(`[realtime] deny join ip=${ip} reason=limited`);
         answer(socket, ack, joinDenied(RATE_LIMIT_CODE, rateLimitRetryAfter(mintIpKey(ip), MINT_IP_MAX)));
         return;
       }
       hitRateLimit(mintIpKey(ip), MINT_IP_MAX);
-      const stay = await resolveStay(jar[STAY_COOKIE]);
       if (!stay) {
         // Pre auth hammering is keyed by socket id so one connection
         // cannot probe forever and real stay budgets stay clean.
@@ -187,11 +192,17 @@ app.prepare().then(() => {
       hitRateLimit(mintStayKey(stay.stayId), MINT_STAY_MAX);
       const room = stayRoom(stay.stayId);
       await socket.join(room);
+      resetRateLimit(mintStayKey(stay.stayId));
+      resetRateLimit(mintIpKey(ip));
       console.log(`[realtime] join room=${room} stay=${stay.stayId}`);
       answer(socket, ack, { ok: true, room });
     });
 
     socket.on(JOIN_KITCHEN, async (ack: unknown) => {
+      if (socket.rooms.has(KITCHEN_ROOM)) {
+        answer(socket, ack, { ok: true, room: KITCHEN_ROOM });
+        return;
+      }
       if (isRateLimited(signInIpKey(ip), SIGN_IN_IP_MAX)) {
         console.log(`[realtime] deny kitchen ip=${ip} reason=limited`);
         answer(socket, ack, joinDenied(RATE_LIMIT_CODE, rateLimitRetryAfter(signInIpKey(ip), SIGN_IN_IP_MAX)));
@@ -210,7 +221,7 @@ app.prepare().then(() => {
         answer(socket, ack, joinDenied("NO_SESSION", 0));
         return;
       }
-      if (staff.role !== "KITCHEN" && staff.role !== "ADMIN") {
+      if (staff.role !== "KITCHEN" && staff.role !== "ADMIN" && staff.role !== "FRONT_DESK") {
         console.log(`[realtime] deny kitchen ip=${ip} reason=role`);
         answer(socket, ack, joinDenied("FORBIDDEN", 0));
         return;
@@ -223,6 +234,8 @@ app.prepare().then(() => {
       }
       hitRateLimit(accountKey, SIGN_IN_ACCOUNT_MAX);
       await socket.join(KITCHEN_ROOM);
+      resetRateLimit(accountKey);
+      resetRateLimit(signInIpKey(ip));
       console.log(`[realtime] join room=${KITCHEN_ROOM} role=${staff.role}`);
       answer(socket, ack, { ok: true, room: KITCHEN_ROOM });
     });

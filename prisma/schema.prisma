@@ -63,6 +63,8 @@ model User {
   isDisabled            Boolean   @default(false)
   sessions              Session[]
   accounts              Account[]
+  verifiedOrders        Order[]   @relation("OrderVerifiedBy")
+  cancelledOrders       Order[]   @relation("OrderCancelledBy")
 }
 
 model Session {
@@ -187,22 +189,29 @@ model MenuItem {
 }
 
 model Order {
-  // etaMinutes null until verify, then 5 to 120, enforced by a CHECK
-  // constraint in migration 20261010163000_data_model_checks (AC-7).
-  id         String      @id @default(uuid())
-  stayId     String
-  stay       Stay        @relation(fields: [stayId], references: [id], onDelete: Restrict)
-  status     OrderStatus @default(PENDING)
-  etaMinutes Int?
-  placedAt   DateTime    @default(now())
-  verifiedAt DateTime?
-  servedAt   DateTime?
-  items      OrderItem[]
-  folioLines FolioLine[]
-  payments   Payment[]
+  // etaMinutes null until verify, then 1 to 120, enforced by a CHECK
+  // constraint in migration 20261011140000_kitchen_live_board (AC-3, AC-7).
+  id              String      @id @default(uuid())
+  stayId          String
+  stay            Stay        @relation(fields: [stayId], references: [id], onDelete: Restrict)
+  status          OrderStatus @default(PENDING)
+  etaMinutes      Int?
+  placedAt        DateTime    @default(now())
+  verifiedAt      DateTime?
+  servedAt        DateTime?
+  cancelReason    String?
+  verifiedBy      String?
+  cancelledBy     String?
+  verifiedByUser  User?       @relation("OrderVerifiedBy", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  cancelledByUser User?       @relation("OrderCancelledBy", fields: [cancelledBy], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+  folioLines      FolioLine[]
+  payments        Payment[]
 
   @@index([stayId])
   @@index([status])
+  @@index([verifiedBy])
+  @@index([cancelledBy])
 }
 
 model OrderItem {
