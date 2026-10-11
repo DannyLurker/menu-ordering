@@ -1,7 +1,10 @@
-// Seed for local verify (spec 0002, task 3).
-// Two categories, five items with whole rupiah prices, one demo ACTIVE stay.
+// Seed for local verify (specs 0002 and 0004).
+// Two categories, five items with whole rupiah prices, one demo ACTIVE stay,
+// plus the first admin from SEED_ADMIN_EMAIL plus SEED_ADMIN_PASSWORD.
 // Real PIN hashing lands in the auth slice; here scrypt with a dev salt.
 import "dotenv/config";
+import { randomUUID } from "node:crypto";
+import { hashPassword, verifyPassword } from "better-auth/crypto";
 import { prisma } from "../lib/db";
 import { hashPin } from "../lib/pin";
 
@@ -63,6 +66,72 @@ async function main(): Promise<void> {
   });
 
   console.log("Seed ok: 2 categories, 5 items, demo stay room 101 (demo PIN kept out of logs).");
+
+  // First admin (spec 0004): skipped when the account already exists.
+  // mustChangePassword stays true so the temp secret rotates at first sign in.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (!adminEmail || !adminPassword) {
+    throw new Error("SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are not set. Copy .env.example to .env and set them.");
+  }
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail },
+    include: { accounts: true },
+  });
+  if (existingAdmin) {
+    // Dev drift guard: when the env secret changed after the first seed,
+    // the stored hash no longer matches and sign in bricks with no recourse
+    // but a manual delete. Re-hash to the env value, loudly, instead.
+    const cred = existingAdmin.accounts.find((a) => a.providerId === "credential");
+    const matches =
+      cred?.password != null && (await verifyPassword({ password: adminPassword, hash: cred.password }));
+    if (!matches) {
+      await prisma.$transaction([
+        prisma.account.updateMany({
+          where: { userId: existingAdmin.id, providerId: "credential" },
+          data: { password: await hashPassword(adminPassword), updatedAt: new Date() },
+        }),
+        prisma.user.update({
+          where: { id: existingAdmin.id },
+          data: { mustChangePassword: true, failedSignInAttempts: 0, lockedUntil: null },
+        }),
+      ]);
+      console.log("Seed ok: admin secret rotated to match env (first secret kept out of logs).");
+      return;
+    }
+    console.log("Seed ok: admin already exists, skipped.");
+    return;
+  }
+  const adminId = randomUUID();
+  const now = new Date();
+  const adminHash = await hashPassword(adminPassword);
+  await prisma.$transaction([
+    prisma.user.create({
+      data: {
+        id: adminId,
+        name: "Hotel Admin",
+        email: adminEmail,
+        emailVerified: false,
+        createdAt: now,
+        updatedAt: now,
+        role: "ADMIN",
+        mustChangePassword: true,
+        isDisabled: false,
+      },
+    }),
+    prisma.account.create({
+      data: {
+        id: randomUUID(),
+        accountId: adminId,
+        providerId: "credential",
+        userId: adminId,
+        password: adminHash,
+        createdAt: now,
+        updatedAt: now,
+      },
+    }),
+  ]);
+  console.log("Seed ok: first admin created (first secret kept out of logs).");
 }
 
 main()

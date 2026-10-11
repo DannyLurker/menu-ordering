@@ -92,12 +92,12 @@ Staff access by role (front desk, kitchen, admin) plus guest identity tied to st
 **Done when:** each role can reach only its own screens, and guest identity resolves to one stay.
 
 - [x] Design it (spec): `/architect auth and roles`
-      Spec [0004](../specs/0004-auth-and-roles/index.md) · Code in `prisma/schema.prisma`, `lib/auth.ts`, `app/sign-in/`, `proxy.ts`, `app/api/stay-session/`, `app/api/staff/`
-- [ ] Build it: `/develop auth and roles`
-  - [ ] Migration plus BetterAuth wiring with additive User columns and StaySession (AC-1, AC-2, AC-3, AC-5)
-  - [ ] Staff sign in plus temp change plus edge gates per role (AC-1, AC-2, AC-4, AC-8)
-  - [ ] Stay mint plus revoke plus LRU limits and lockout (AC-3, AC-4, AC-5, AC-6, AC-7)
-  - [ ] Admin create plus seed plus unlock plus prove walk (AC-2, AC-8, AC-1 to AC-8)
+      Spec [0004](../specs/0004-auth-and-roles/index.md) · Code in `prisma/schema.prisma`, `prisma/migrations/20261011013208_auth_and_roles/`, `lib/auth.ts`, `lib/auth-client.ts`, `lib/staff.ts`, `lib/staff-auth.ts`, `lib/stay-session.ts`, `lib/rate-limit.ts`, `proxy.ts`, `app/sign-in/`, `app/change-password/`, `app/stays/`, `app/kitchen/`, `app/staff/`, `app/menu/`, `app/api/auth/`, `app/api/stay-session/`, `app/api/staff/`, `app/api/stays/`, `prisma/seed.ts`, `scripts/prove-auth-and-roles.ts`
+- [x] Build it: `/develop auth and roles`
+  - [x] Migration plus BetterAuth wiring with additive User columns and StaySession (AC-1, AC-2, AC-3, AC-5)
+  - [x] Staff sign in plus temp change plus edge gates per role (AC-1, AC-2, AC-4, AC-8)
+  - [x] Stay mint plus revoke plus LRU limits and lockout (AC-3, AC-4, AC-5, AC-6, AC-7)
+  - [x] Admin create plus seed plus unlock plus prove walk (AC-2, AC-8, AC-1 to AC-8)
 - [ ] Verify it: `/check verify auth and roles`
 - [ ] Test it: `/test auth and roles`
 - [ ] Review it (fresh model): `/check review auth and roles`

@@ -1,52 +1,32 @@
-"use client";
-import { DirectMessage } from "@/server";
-import { useEffect, useState } from "react";
-import { io, Socket } from "socket.io-client";
+// Kitchen home (spec 0004). The live board with verify and ETA opens here
+// in Slice 1; this slice owns the gate that keeps desk staff out (AC-2).
+import { redirect } from "next/navigation";
+import { getStaffUser } from "@/lib/staff-auth";
+import { CardEmpty } from "@/components/ui/card";
+import { StaffShell } from "@/components/ui/staff-shell";
 
-const fakeSession = {
-  userId: "efg",
-};
+// Staff identity lives in request headers, so this route renders per
+// request instead of prerendering (Next 16 cache components).
+export const instant = false;
 
-let socket: Socket;
-
-const page = () => {
-  const [msg, setMsg] = useState("");
-  const [logs, setLogs] = useState<string[]>([]);
-
-  useEffect(() => {
-    socket = io();
-
-    socket.on("connect", () => {
-      socket.emit("register_user", fakeSession.userId);
-    });
-
-    socket.on("private_message", (data: DirectMessage) => {
-      setLogs((prev) => [...prev, data.content]);
-    });
-  }, []);
-
-  const sendMsg = () => {
-    socket.emit("private_message", {
-      recipientId: "abc",
-      content: msg,
-      senderId: fakeSession.userId,
-      timestamp: new Date().toDateString(),
-    } as DirectMessage);
-  };
-
+export default async function KitchenPage() {
+  const user = await getStaffUser();
+  if (!user) redirect("/sign-in");
+  if (user.mustChangePassword) redirect("/change-password");
+  if (user.role !== "KITCHEN" && user.role !== "ADMIN") {
+    redirect(user.role === "FRONT_DESK" ? "/stays" : "/sign-in");
+  }
   return (
-    <div>
-      <div>
-        <h1>Logs:</h1>
-        {logs.map((log) => (
-          <li>{log}</li>
-        ))}
-      </div>
-
-      <input type="text" value={msg} onChange={(e) => setMsg(e.target.value)} />
-      <button onClick={sendMsg}>Send</button>
-    </div>
+    <StaffShell
+      name={user.name}
+      role={user.role}
+      title="Kitchen · Dapur"
+      description="New orders appear here live in Slice 1. Verify sets PREPARING with an ETA."
+    >
+      <CardEmpty
+        title="Live board arrives in Slice 1"
+        hint="Kitchen verifies PENDING orders into PREPARING with estimated minutes here. · Dapur memverifikasi pesanan di sini."
+      />
+    </StaffShell>
   );
-};
-
-export default page;
+}

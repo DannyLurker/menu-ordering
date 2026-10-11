@@ -1,54 +1,16 @@
-"use client";
-import { DirectMessage } from "@/server";
-import { useEffect, useState } from "react";
-import { io, Socket } from "socket.io-client";
+// Landing route (spec 0004). The edge gate in proxy.ts already routes
+// signed in staff to their role home; this stays as the direct hit guard.
+import { redirect } from "next/navigation";
+import { getStaffUser } from "@/lib/staff-auth";
+import { ROLE_HOME } from "@/lib/staff";
 
-const fakeSession = {
-  userId: "abc",
-};
+// Staff identity lives in request headers, so this route renders per
+// request instead of prerendering (Next 16 cache components).
+export const instant = false;
 
-let socket: Socket;
-
-const page = () => {
-  const [msg, setMsg] = useState("");
-  const [logs, setLogs] = useState<string[]>([]);
-
-  useEffect(() => {
-    socket = io();
-
-    socket.on("connect", () => {
-      socket.emit("register_user", fakeSession.userId);
-    });
-
-    socket.on("private_message", (data: DirectMessage) => {
-      setLogs((prev) => [...prev, data.content]);
-    });
-  }, []);
-
-  const sendMsg = () => {
-    const now = new Date().toString();
-
-    socket.emit("private_message", {
-      recipientId: "efg",
-      content: msg,
-      senderId: fakeSession.userId,
-      timestamp: now,
-    } as DirectMessage);
-  };
-
-  return (
-    <div>
-      <div>
-        <h1>Logs:</h1>
-        {logs.map((log, idx) => (
-          <li key={idx}>{log}</li>
-        ))}
-      </div>
-
-      <input type="text" value={msg} onChange={(e) => setMsg(e.target.value)} />
-      <button onClick={sendMsg}>Send</button>
-    </div>
-  );
-};
-
-export default page;
+export default async function HomePage() {
+  const user = await getStaffUser();
+  if (!user) redirect("/sign-in");
+  if (user.mustChangePassword) redirect("/change-password");
+  redirect(ROLE_HOME[user.role] ?? "/sign-in");
+}
